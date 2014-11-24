@@ -56,10 +56,19 @@
 #define ACPU_SC_VD_HPM_CTRL_DLY_EXP_MASK	(0xffffff << 8)
 
 #define PERI_BASE				0xf7030000
+#define PERI_SC_PERIPH_CTRL2			(PERI_BASE + 0x004)
+#define PERI_SC_PERIPH_CTRL13			(PERI_BASE + 0x028)
 #define PERI_SC_DDR_CTRL0			(PERI_BASE + 0x050)
+#define PERI_SC_PERIPH_CLKEN0			(PERI_BASE + 0x200)
+#define PERI_SC_PERIPH_CLKDIS0			(PERI_BASE + 0x204)
 #define PERI_SC_PERIPH_CLKEN8			(PERI_BASE + 0x240)
+#define PERI_SC_PERIPH_CLKEN12			(PERI_BASE + 0x270)
+#define PERI_SC_PERIPH_RSTEN0			(PERI_BASE + 0x300)
+#define PERI_SC_PERIPH_RSTDIS0			(PERI_BASE + 0x304)
+#define PERI_SC_PERIPH_RSTSTAT0			(PERI_BASE + 0x308)
 #define PERI_SC_PERIPH_RSTDIS8			(PERI_BASE + 0x344)
 #define PERI_SC_CLK_SEL0			(PERI_BASE + 0x400)
+#define PERI_SC_CLKCFG8BIT1			(PERI_BASE + 0x494)
 
 #define PMCTRL_BASE				0xf7032000
 #define PMCTRL_ACPUPLLCTRL			(PMCTRL_BASE + 0x000)
@@ -218,6 +227,92 @@
 #define MDDRC_PACK_DDRC_DXNWDQDLY3		(MDDRC_PACK_BASE + 0x3b4)
 #define MDDRC_PACK_DDRC_DXPHYCTRL3		(MDDRC_PACK_BASE + 0x3d8)
 #define MDDRC_PACK_DDRC_DXPHYRSVD3		(MDDRC_PACK_BASE + 0x3f0)
+
+#define MMC0_BASE				0xf723d000
+#define MMC0_CTRL				(MMC0_BASE + 0x000)
+#define MMC0_CLKENA				(MMC0_BASE + 0x004)
+#define MMC0_CLKDIV				(MMC0_BASE + 0x008)
+#define MMC0_TMOUT				(MMC0_BASE + 0x014)
+#define MMC0_CTYPE				(MMC0_BASE + 0x018)
+#define MMC0_BLKSIZ				(MMC0_BASE + 0x01c)
+#define MMC0_BYTCNT				(MMC0_BASE + 0x020)
+#define MMC0_INTMSK				(MMC0_BASE + 0x024)
+#define MMC0_CMDARG				(MMC0_BASE + 0x028)
+#define MMC0_CMD				(MMC0_BASE + 0x02c)
+#define MMC0_RESP0				(MMC0_BASE + 0x030)
+#define MMC0_RESP1				(MMC0_BASE + 0x034)
+#define MMC0_RESP2				(MMC0_BASE + 0x038)
+#define MMC0_RESP3				(MMC0_BASE + 0x03c)
+#define MMC0_RINTSTS				(MMC0_BASE + 0x044)
+#define MMC0_STATUS				(MMC0_BASE + 0x048)
+#define MMC0_FIFOTH				(MMC0_BASE + 0x04c)
+#define MMC0_DEBNCE				(MMC0_BASE + 0x064)
+#define MMC0_UHSREG				(MMC0_BASE + 0x074)
+#define MMC0_BMOD				(MMC0_BASE + 0x080)
+#define MMC0_IDSTS				(MMC0_BASE + 0x08c)
+#define MMC0_IDINTEN				(MMC0_BASE + 0x090)
+#define MMC0_CARDTHRCTL				(MMC0_BASE + 0X100)
+
+#define CMD_UPDATE_CLK				0x80202000
+#define CMD_START_BIT				(1 << 31)
+
+#define MMC_INT_HLE				(1 << 12)
+
+#define MMC_8BIT_MODE				(1 << 16)
+
+#define MMC_BLOCK_SIZE				512
+
+#define BIT_CMD_RESPONSE_EXPECT			(1 << 6)
+#define BIT_CMD_LONG_RESPONSE			(1 << 7)
+#define BIT_CMD_CHECK_RESPONSE_CRC		(1 << 8)
+#define BIT_CMD_DATA_EXPECTED			(1 << 9)
+#define BIT_CMD_READ				(0 << 10)
+#define BIT_CMD_WRITE				(1 << 10)
+#define BIT_CMD_BLOCK_TRANSFER			(0 << 11)
+#define BIT_CMD_STREAM_TRANSFER			(1 << 11)
+#define BIT_CMD_SEND_AUTO_STOP			(1 << 12)
+#define BIT_CMD_WAIT_PRVDATA_COMPLETE		(1 << 13)
+#define BIT_CMD_STOP_ABORT_CMD			(1 << 14)
+#define BIT_CMD_SEND_INIT			(1 << 15)
+#define BIT_CMD_UPDATE_CLOCK_ONLY		(1 << 21)
+#define BIT_CMD_READ_CEATA_DEVICE		(1 << 22)
+#define BIT_CMD_CCS_EXPECTED			(1 << 23)
+#define BIT_CMD_ENABLE_BOOT			(1 << 24)
+#define BIT_CMD_EXPECT_BOOT_ACK			(1 << 25)
+#define BIT_CMD_DISABLE_BOOT			(1 << 26)
+#define BIT_CMD_MANDATORY_BOOT			(0 << 27)
+#define BIT_CMD_ALTERNATE_BOOT			(1 << 27)
+#define BIT_CMD_VOLT_SWITCH			(1 << 28)
+#define BIT_CMD_USE_HOLD_REG			(1 << 29)
+#define BIT_CMD_START				(1 << 31)
+
+#define MMC_INT_EBE				(1 << 15)
+#define MMC_INT_HLE				(1 << 12)
+#define MMC_INT_RTO				(1 << 8)
+#define MMC_INT_RCRC				(1 << 6)
+#define MMC_INT_RE				(1 << 1)
+
+#define EMMC_FIX_RCA				6
+
+/* bits in MMC0_CTRL */
+#define MMC_CTRL_RESET				(1 << 0)
+#define MMC_FIFO_RESET				(1 << 1)
+#define MMC_DMA_RESET				(1 << 2)
+#define MMC_INT_EN				(1 << 4)
+#define MMC_DMA_EN				(1 << 25)
+
+#define MMC_STS_DATA_BUSY			(1 << 9)
+
+#define MMC_IDMAC_ENABLE			(1 << 7)
+#define MMC_IDMAC_FB				(1 << 1)
+#define MMC_IDMAC_SWRESET			(1 << 0)
+
+#define MMC_FIFO_TWMARK(x)			(x & 0xfff)
+#define MMC_FIFO_RWMARK(x)			((x & 0x1ff) << 16)
+#define MMC_DMA_BURST_SIZE(x)			((x & 0x7) << 28)
+
+#define MMC_CARD_RD_THR(x)			((x & 0xfff) << 16)
+#define MMC_CARD_RD_THR_EN			(1 << 0)
 
 #define AO_CTRL_BASE				0xf7800000
 #define AO_SC_SYS_CTRL0				(AO_CTRL_BASE + 0x000)
