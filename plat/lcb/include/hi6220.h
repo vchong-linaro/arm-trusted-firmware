@@ -236,7 +236,7 @@
 #define MMC0_CTYPE				(MMC0_BASE + 0x018)
 #define MMC0_BLKSIZ				(MMC0_BASE + 0x01c)
 #define MMC0_BYTCNT				(MMC0_BASE + 0x020)
-#define MMC0_INTMSK				(MMC0_BASE + 0x024)
+#define MMC0_INTMASK				(MMC0_BASE + 0x024)
 #define MMC0_CMDARG				(MMC0_BASE + 0x028)
 #define MMC0_CMD				(MMC0_BASE + 0x02c)
 #define MMC0_RESP0				(MMC0_BASE + 0x030)
@@ -255,8 +255,6 @@
 
 #define CMD_UPDATE_CLK				0x80202000
 #define CMD_START_BIT				(1 << 31)
-
-#define MMC_INT_HLE				(1 << 12)
 
 #define MMC_8BIT_MODE				(1 << 16)
 
@@ -290,6 +288,7 @@
 #define MMC_INT_HLE				(1 << 12)
 #define MMC_INT_RTO				(1 << 8)
 #define MMC_INT_RCRC				(1 << 6)
+#define MMC_INT_CMD_DONE			(1 << 2)
 #define MMC_INT_RE				(1 << 1)
 
 #define EMMC_FIX_RCA				6

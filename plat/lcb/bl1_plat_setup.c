@@ -47,6 +47,8 @@
 #include "lcb_def.h"
 //#include "juno_private.h"
 
+#define DDR
+
 /* Data structure which holds the extents of the trusted RAM for BL1 */
 static meminfo_t bl1_tzram_layout;
 
@@ -84,29 +86,24 @@ static void init_pmussi(void)
 {
 	uint32_t data;
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	/* make PMUSSI out of reset */
 	mmio_write_32(AO_SC_PERIPH_RSTDIS4, AO_SC_PERIPH_CLKEN4_PMUSSI);
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	/* set PMU SSI clock latency for read operation */
 	data = mmio_read_32(AO_SC_MCU_SUBSYS_CTRL3);
 	data &= AO_SC_MCU_SUBSYS_CTRL3_RCLK_MASK;
 	data |= AO_SC_MCU_SUBSYS_CTRL3_RCLK_3;
 	mmio_write_32(AO_SC_MCU_SUBSYS_CTRL3, data);
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	/* enable PMUSSI clock */
 	data = AO_SC_PERIPH_CLKEN5_PMUSSI_CCPU | AO_SC_PERIPH_CLKEN5_PMUSSI_MCU;
 	mmio_write_32(AO_SC_PERIPH_CLKEN5, data);
 	data = AO_SC_PERIPH_CLKEN4_PMUSSI;
 	mmio_write_32(AO_SC_PERIPH_CLKEN4, data);
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	/* output high on gpio0 */
 	gpio_direction_output(0);
 	gpio_set_value(0, 1);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 }
 
 static void init_hi6553(void)
@@ -161,11 +158,10 @@ static void init_pll(void)
 	data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
 	data |= 0x1;
 	mmio_write_32(PMCTRL_ACPUPLLCTRL, data);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
+	udelay(100000);
 	do {
 		data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
 	} while ((data & (1 << 28)) != (1 << 28));
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 
 	/* switch from slow mode to normal mode */
 	data = mmio_read_32(AO_SC_SYS_CTRL0);
@@ -205,13 +201,13 @@ static void init_freq(void)
 	data &= ~PMCTRL_ACPUSYSPLL_CLKDIV_CFG_MASK;
 	data |= 0x5;
 	mmio_write_32(PMCTRL_ACPUSYSPLLCFG, data);
+	udelay(100000);
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	do {
 		data = mmio_read_32(ACPU_SC_CPU_STAT);
 		data &= ACPU_SC_CPU_STAT_CLKDIV_VD_MASK;
 	} while (data != ACPU_SC_CPU_STAT_CLKDIV_VD_MASK);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
+	udelay(100000);
 
 	data = mmio_read_32(ACPU_SC_VD_CTRL);
 	data &= ~(ACPU_SC_VD_CTRL_TUNE_EN_DIF | ACPU_SC_VD_CTRL_TUNE_EN_INT);
@@ -225,13 +221,13 @@ static void init_freq(void)
 	data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 	data |= PMCTRL_ACPUPLLSEL_ACPUPLL_CFG;
 	mmio_write_32(PMCTRL_ACPUPLLSEL, data);
+	udelay(500000);
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	do {
 		data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 		data &= PMCTRL_ACPUPLLSEL_SYSPLL_STAT;
 	} while (data != PMCTRL_ACPUPLLSEL_SYSPLL_STAT);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
+	udelay(500000);
 
 	data = mmio_read_32(ACPU_SC_VD_HPM_CTRL);
 	data &= ~ACPU_SC_VD_HPM_CTRL_OSC_DIV_MASK;
@@ -279,7 +275,6 @@ static void init_freq(void)
 	data &= ~((1 << 7) - 1);
 	data |= 0x6b;
 	mmio_write_32(PMCTRL_ACPUDESTVOL, data);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	do {
 		data = mmio_read_32(PMCTRL_ACPUDESTVOL);
 		tmp = data & PMCTRL_ACPUDESTVOL_DEST_VOL_MASK;
@@ -288,7 +283,6 @@ static void init_freq(void)
 			continue;
 		data = mmio_read_32(PMCTRL_ACPUVOLTTIMEOUT);
 	} while (!(data & 1));
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 
 	data = mmio_read_32(PMCTRL_ACPUCLKDIV);
 	data &= ~(PMCTRL_ACPUCLKDIV_CPUEXT_CFG_MASK |
@@ -298,10 +292,8 @@ static void init_freq(void)
 	data |= cpuext_cfg | (ddr_cfg << 8);
 	mmio_write_32(PMCTRL_ACPUCLKDIV, data);
 
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 	do {
 		data = mmio_read_32(PMCTRL_ACPUCLKDIV);
-		NOTICE("###%s, %d, acpuclkdiv:0x%x\n", __func__, __LINE__, data);
 		tmp = (data & PMCTRL_ACPUCLKDIV_CPUEXT_STAT_MASK) >> 16;
 		if (cpuext_cfg != tmp)
 			continue;
@@ -311,7 +303,6 @@ static void init_freq(void)
 		data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
 		data &= 1 << 28;
 	} while (!data);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
 
 	data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 	data &= ~PMCTRL_ACPUPLLSEL_ACPUPLL_CFG;
@@ -320,7 +311,8 @@ static void init_freq(void)
 		data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 		data &= PMCTRL_ACPUPLLSEL_ACPUPLL_STAT;
 	} while (data != PMCTRL_ACPUPLLSEL_ACPUPLL_STAT);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
+	udelay(500000);
+	NOTICE("%s, %d\n", __func__, __LINE__);
 
 	data = mmio_read_32(ACPU_SC_VD_CTRL);
 	data &= ~ACPU_SC_VD_CTRL_FORCE_CLK_EN;
@@ -330,9 +322,11 @@ static void init_freq(void)
 	data &= ~(PMCTRL_ACPUSYSPLLCFG_SYSPLL_CLKEN |
 		PMCTRL_ACPUSYSPLLCFG_CLKDIV_MASK);
 	mmio_write_32(PMCTRL_ACPUSYSPLLCFG, data);
-	NOTICE("###%s, %d\n", __func__, __LINE__);
+	udelay(500000);
+	NOTICE("%s, %d\n", __func__, __LINE__);
 }
 
+#ifdef DDR
 static int cat_533mhz_800mhz(void)
 {
 	unsigned int data, i;
@@ -371,7 +365,7 @@ static int cat_533mhz_800mhz(void)
 
 		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 		if (!(data & 0x400)) {
-			NOTICE("lpddr3 cat pass\n");
+			INFO("lpddr3 cat pass\n");
 			return 0;
 		}
 		NOTICE("lpddr3 cat fail\n");
@@ -440,9 +434,9 @@ static void ddrx_rdet(void)
 	} while (!(data & 1));
 	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 	if (data & 0x100)
-		NOTICE("rdet lbs fail\n");
+		INFO("rdet lbs fail\n");
 	else
-		NOTICE("rdet lbs pass\n");
+		INFO("rdet lbs pass\n");
 
 	bdl[0] = mmio_read_32(MDDRC_PACK_DDRC_DXNRDQSDLY0) & 0x7f;
 	bdl[1] = mmio_read_32(MDDRC_PACK_DDRC_DXNRDQSDLY1) & 0x7f;
@@ -489,10 +483,10 @@ static void ddrx_rdet(void)
 		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 		rdet = data & 0x100;
 		if (rdet) {
-			NOTICE("rdet ds fail\n");
+			INFO("rdet ds fail\n");
 			mmio_write_32(MDDRC_PACK_DDRC_PHYINITSTATUS, 0x100);
 		} else
-			NOTICE("rdet ds pass\n");
+			INFO("rdet ds pass\n");
 		bdl[0]++;
 		bdl[1]++;
 		bdl[2]++;
@@ -510,9 +504,9 @@ static void ddrx_rdet(void)
 	} while (data & 1);
 	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 	if (data & 0x100)
-		NOTICE("rdet rbs av fail\n");
+		INFO("rdet rbs av fail\n");
 	else
-		NOTICE("rdet rbs av pass\n");
+		INFO("rdet rbs av pass\n");
 }
 
 static void ddrx_wdet(void)
@@ -544,9 +538,9 @@ static void ddrx_wdet(void)
 	} while (data & 1);
 	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 	if (data & 0x200)
-		NOTICE("wdet lbs fail\n");
+		INFO("wdet lbs fail\n");
 	else
-		NOTICE("wdet lbs pass\n");
+		INFO("wdet lbs pass\n");
 
 	dq[0] = mmio_read_32(MDDRC_PACK_DDRC_DXNWDQDLY0) & 0x1f00;
 	dq[1] = mmio_read_32(MDDRC_PACK_DDRC_DXNWDQDLY1) & 0x1f00;
@@ -580,10 +574,10 @@ static void ddrx_wdet(void)
 		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 		wdet = data & 0x200;
 		if (wdet) {
-			NOTICE("wdet ds fail\n");
+			INFO("wdet ds fail\n");
 			mmio_write_32(MDDRC_PACK_DDRC_PHYINITSTATUS, 0x200);
 		} else
-			NOTICE("wdet ds pass\n");
+			INFO("wdet ds pass\n");
 
 		for (i = 0; i < 4; i++) {
 			data = mmio_read_32(MDDRC_PACK_DDRC_DXNWDQNBDL0(i));
@@ -620,9 +614,9 @@ static void ddrx_wdet(void)
 	} while (data & 1);
 	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
 	if (data & 0x200)
-		NOTICE("wdet rbs av fail\n");
+		INFO("wdet rbs av fail\n");
 	else
-		NOTICE("wdet rbs av pass\n");
+		INFO("wdet rbs av pass\n");
 }
 
 static void set_ddrc_533mhz(void)
@@ -700,7 +694,7 @@ static void set_ddrc_533mhz(void)
 		NOTICE("failed to init lpddr3 rank0 dram phy\n");
 		return;
 	}
-	NOTICE("succeed to init lpddr3 rank0 dram phy\n");
+	INFO("succeed to init lpddr3 rank0 dram phy\n");
 
 	data = cat_533mhz_800mhz();
 	if (data)
@@ -726,7 +720,7 @@ static void set_ddrc_533mhz(void)
 		NOTICE("fail to init ddr3 rank0 in 533MHz\n");
 		return;
 	}
-	NOTICE("init ddr3 rank0 in 533MHz\n");
+	INFO("init ddr3 rank0 in 533MHz\n");
 	ddrx_rdet();
 	ddrx_wdet();
 
@@ -742,7 +736,7 @@ static void set_ddrc_533mhz(void)
 	if (data & 0x7fe)
 		NOTICE("ddr3 rank1 init faile in 533MHz\n");
 	else
-		NOTICE("ddr3 rank1 init pass in 533MHz\n");
+		INFO("ddr3 rank1 init pass in 533MHz\n");
 
 	data = mmio_read_32(MDDRC_PACK_DDRC_TRAINCTRL0);
 	data &= ~0xf;
@@ -877,7 +871,6 @@ static int detect_ddr_chip_info(void)
 static void init_ddr(void)
 {
 	unsigned int data;
-	uint64_t cval;
 
 	hi6553_write_8(VSET_BUCK2_ADJ, 0x26);
 	hi6553_write_8(VSET_BUCK3_ADJ, 0x04);
@@ -889,12 +882,6 @@ static void init_ddr(void)
 	data = mmio_read_32(PMCTRL_DDRPLL1CTRL);
 	data |= 1;
 	mmio_write_32(PMCTRL_DDRPLL1CTRL, data);
-
-	__asm__ ("mrs %0, cntvct_el0" : "=r" (cval));
-	NOTICE("###%s, %d, cval:%llx\n", __func__, __LINE__, cval);
-	for (data = 0; data < 0xffffffff; data++) {}
-	__asm__ ("mrs %0, cntvct_el0" : "=r" (cval));
-	NOTICE("###%s, %d, cval:%llx\n", __func__, __LINE__, cval);
 
 	udelay(300);
 
@@ -918,7 +905,6 @@ static void init_ddr(void)
 	data &= ~0x1;
 	mmio_write_32(PMCTRL_DDRPLL0CTRL, data);
 	data = mmio_read_32(PMCTRL_DDRPLL0CTRL);
-	NOTICE("ddr init pll0 0x%x\n", data);
 }
 
 static void init_ddrc_qos(void)
@@ -977,6 +963,7 @@ static void init_ddrc_qos(void)
 	mmio_write_32(MDDRC_QOSB_WRTOUT_MAP, 0x3020100);
 	mmio_write_32(MDDRC_QOSB_RDTOUT_MAP, 0x3020100);
 }
+#endif
 
 static void init_mmc_pll(void)
 {
@@ -1028,30 +1015,14 @@ static void reset_mmc0_clk(void)
 	} while (data & (1 << 0));
 }
 
-static void enable_mmc0_clock(int enable)
-{
-	if (enable)
-		mmio_write_32(MMC0_CLKENA, 1);
-	else
-		mmio_write_32(MMC0_CLKENA, 0);
-}
-
-static int set_mmc0_freq(int rate)
+static int update_mmc0_clock(void)
 {
 	unsigned int data;
-	int divider, found = 0;
 
-	for (divider = 1; divider < 255; divider++) {
-		if ((100000000 / (2 * divider)) <= rate) {
-			found = 1;
-			break;
-		}
-	}
-	//NOTICE("#%s, %d, found:%d\n", __func__, __LINE__, found);
-	if (!found)
-		return -EINVAL;
-	mmio_write_32(MMC0_CLKDIV, divider & 0xff);
-	mmio_write_32(MMC0_CMD, CMD_UPDATE_CLK);
+	/* CMD_UPDATE_CLK */
+	data = BIT_CMD_WAIT_PRVDATA_COMPLETE | BIT_CMD_UPDATE_CLOCK_ONLY |
+		BIT_CMD_START;
+	mmio_write_32(MMC0_CMD, data);
 	while (1) {
 		data = mmio_read_32(MMC0_CMD);
 		if (!(data & CMD_START_BIT))
@@ -1065,6 +1036,53 @@ static int set_mmc0_freq(int rate)
 	return 0;
 }
 
+static int set_mmc0_clock(int rate)
+{
+	int ret, divider, found = 0;
+
+	for (divider = 1; divider < 256; divider++) {
+		if ((100000000 / (2 * divider)) <= rate) {
+			found = 1;
+			break;
+		}
+	}
+	//NOTICE("#%s, %d, found:%d\n", __func__, __LINE__, found);
+	if (!found)
+		return -EINVAL;
+
+	/* Disable mmc clock first */
+	do {
+		mmio_write_32(MMC0_CLKENA, 0);
+		ret = update_mmc0_clock();
+	} while (ret);
+
+	do {
+		mmio_write_32(MMC0_CLKDIV, divider);
+		ret = update_mmc0_clock();
+	} while (ret);
+
+	/* enable mmc clock */
+	do {
+		mmio_write_32(MMC0_CLKENA, 1);
+		ret = update_mmc0_clock();
+	} while (ret);
+	return 0;
+}
+
+#if 0
+static void enable_mmc0_clock(int enable)
+{
+	int ret;
+	do {
+		if (enable)
+			mmio_write_32(MMC0_CLKENA, 1);
+		else
+			mmio_write_32(MMC0_CLKENA, 0);
+		ret = update_mmc0_clock();
+	} while (ret);
+}
+#endif
+
 static void set_mmc0_io(void)
 {
 	mmio_write_32(MMC0_CTYPE, MMC_8BIT_MODE);
@@ -1076,7 +1094,7 @@ static void set_mmc0_io(void)
 
 static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 {
-#if 0
+#if 1
 	unsigned int data, err_mask;
 #else
 	unsigned int data;
@@ -1086,6 +1104,7 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 		NOTICE("buf is invalid\n");
 		return -EFAULT;
 	}
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 
 	mmio_write_32(MMC0_CMDARG, arg);
 	/* clear interrupts */
@@ -1148,7 +1167,7 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 	}
 	data |= (cmd & 0x3f) | BIT_CMD_USE_HOLD_REG | BIT_CMD_START;
 	mmio_write_32(MMC0_CMD, data);
-#if 0
+#if 1
 	err_mask = MMC_INT_EBE | MMC_INT_HLE | MMC_INT_RTO | MMC_INT_RCRC |
 		   MMC_INT_RE;
 #endif
@@ -1162,13 +1181,13 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 		if (data)
 			NOTICE("#%s, %d, status:%x\n", __func__, __LINE__, data);
 		*/
-#if 0
+#if 1
 		data = mmio_read_32(MMC0_RINTSTS);
 		if (data)
 			NOTICE("#%s, %d, data:%x\n", __func__, __LINE__, data);
 		if (data & err_mask)
 			return data;
-	} while (!(data & 4));
+	} while (!(data & MMC_INT_CMD_DONE));
 #else
 		data = mmio_read_32(MMC0_CMD);
 	} while (data & BIT_CMD_START);
@@ -1269,14 +1288,7 @@ static int mmc0_set_clock_and_width(int rate, int width)
 		return ret;
 	}
 
-	/* disable clock */
-	enable_mmc0_clock(0);
-
-	ret = set_mmc0_freq(rate);
-	if (ret)
-		return ret;
-
-	enable_mmc0_clock(1);
+	set_mmc0_clock(rate);
 	return 0;
 }
 
@@ -1302,15 +1314,14 @@ static int enum_mmc0_card(void)
 	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* CMD0: IDLE */
 	ret = mmc0_send_cmd(0, 0, buf);
+	NOTICE("#%s, %d, ret:%d\n", __func__, __LINE__, ret);
 	if (ret) {
 		NOTICE("failed to send IDLE command\n");
 		return ret;
 	}
 
-	udelay(1000);
-
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	while (1) {
+		udelay(1000);
 		/* CMD1: READY */
 		ret = mmc0_send_cmd(1, 0x40ff8000, buf);
 		if (ret) {
@@ -1388,7 +1399,7 @@ static int enum_mmc0_card(void)
 static int enable_mmc0(void)
 {
 	unsigned int data;
-	int ret;
+	//int ret;
 
 	/* reset mmc0 */
 	data = MMC_CTRL_RESET | MMC_FIFO_RESET | MMC_DMA_RESET;
@@ -1396,13 +1407,12 @@ static int enable_mmc0(void)
 	/* wait until reset operation finished */
 	do {
 		data = mmio_read_32(MMC0_CTRL);
-		//NOTICE("#%s, %d, data:%x\n", __func__, __LINE__, data);
 	} while (data);
 
 	data |= MMC_INT_EN | MMC_DMA_EN;
 	mmio_write_32(MMC0_CTRL, data);
 
-	mmio_write_32(MMC0_INTMSK, 0x0);
+	mmio_write_32(MMC0_INTMASK, 0x0);
 	mmio_write_32(MMC0_RINTSTS, ~0);
 	mmio_write_32(MMC0_IDINTEN, ~0);
 	mmio_write_32(MMC0_IDSTS, ~0);
@@ -1423,20 +1433,14 @@ static int enable_mmc0(void)
 
 	udelay(50000);
 
-	//NOTICE("#%s, %d\n", __func__, __LINE__);
-	enable_mmc0_clock(0);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
-	ret = set_mmc0_freq(384000);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
-	if (ret)
-		return ret;
-	enable_mmc0_clock(1);
+	set_mmc0_clock(384000);
 
 	udelay(10000);
 	set_mmc0_io();
 	return 0;
 }
 
+#if 1
 static void stop_emmc_boot(void)
 {
 	unsigned int data;
@@ -1454,6 +1458,11 @@ static void stop_emmc_boot(void)
 	} while (!(data & 4));
 #endif
 }
+#else
+static void stop_emmc_boot(void)
+{
+}
+#endif
 
 static void init_mmc(void)
 {
@@ -1499,18 +1508,20 @@ void bl1_early_platform_setup(void)
 
 	/* Initialize the console to provide early debug support */
 	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
+	stop_emmc_boot();
 	init_timer();
 	init_pmussi();
 	init_hi6553();
 	init_pll();
 	init_freq();
+#ifdef DDR
 	init_ddr();
 	init_ddrc_qos();
 
 	mmio_write_32(0x0, 0xa5a55a5a);
 	NOTICE("ddr test value:0x%x\n", mmio_read_32(0x0));
+#endif
 
-	stop_emmc_boot();
 	init_mmc();
 }
 
