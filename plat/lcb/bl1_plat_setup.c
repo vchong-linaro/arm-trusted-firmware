@@ -40,14 +40,15 @@
 #include <platform.h>
 #include <platform_def.h>
 #include <string.h>
+#include <sp804_timer.h>
 #include <gpio.h>
+#include <pll.h>
 #include <hi6220.h>
 #include <hi6553.h>
 #include "../../bl1/bl1_private.h"
 #include "lcb_def.h"
-//#include "juno_private.h"
 
-#define DDR
+//#define DDR
 
 /* Data structure which holds the extents of the trusted RAM for BL1 */
 static meminfo_t bl1_tzram_layout;
@@ -57,41 +58,41 @@ meminfo_t *bl1_plat_sec_mem_layout(void)
 	return &bl1_tzram_layout;
 }
 
-/* Init TIMER00 */
-static void init_timer(void)
-{
-	mmio_write_32(TIMER00_CONTROL, 0);
-	mmio_write_32(TIMER00_LOAD, 0xffffffff);
-	mmio_write_32(TIMER00_CONTROL, 0xc2);
-}
-
-static unsigned int get_timer_value(void)
-{
-	return mmio_read_32(TIMER00_VALUE);
-}
-
-static void udelay(int us)
-{
-	unsigned int start, cnt, delta;
-
-	start = get_timer_value();
-	do {
-		cnt = get_timer_value();
-		delta = (cnt - start) / 19;
-	} while (delta < us);
-}
-
 /* PMU SSI is the device that could map external PMU register to IO */
 static void init_pmussi(void)
 {
 	uint32_t data;
 
-	/* make PMUSSI out of reset */
+	data = mmio_read_32(PERI_SC_PERIPH_CTRL13);
+	NOTICE("#%s, periph ctl13:%x\n", __func__, data);
+	data = mmio_read_32(PERI_SC_PERIPH_CTRL14);
+	NOTICE("#%s, periph ctrl14:%x\n", __func__, data);
+	query_clk_freq(0);
+	query_clk_freq(CLK_MMC0_SRC);
+	query_clk_freq(CLK_SLOW_OFF_SRC);
+	query_clk_freq(CLK_SYSPLL_SRC);
+	query_clk_freq(CLK_SYS_ON);
+	query_clk_freq(CLK_DDRPLL_SRC);
+	query_clk_freq(CLK_UART1_SRC);
+#if 0
+	data |= 1 << 3;
+	mmio_write_32(PERI_SC_PERIPH_CTRL13, data);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
+	} while (!(data & (1 << 0)));
+#endif
+	/*
+	 * After reset, PMUSSI stays in reset mode.
+	 * Now make it out of reset.
+	 */ 
 	mmio_write_32(AO_SC_PERIPH_RSTDIS4, AO_SC_PERIPH_CLKEN4_PMUSSI);
+	do {
+		data = mmio_read_32(AO_SC_PERIPH_RSTSTAT4);
+	} while (data & AO_SC_PERIPH_CLKEN4_PMUSSI);
 
 	/* set PMU SSI clock latency for read operation */
 	data = mmio_read_32(AO_SC_MCU_SUBSYS_CTRL3);
-	data &= AO_SC_MCU_SUBSYS_CTRL3_RCLK_MASK;
+	data &= ~AO_SC_MCU_SUBSYS_CTRL3_RCLK_MASK;
 	data |= AO_SC_MCU_SUBSYS_CTRL3_RCLK_3;
 	mmio_write_32(AO_SC_MCU_SUBSYS_CTRL3, data);
 
@@ -110,6 +111,8 @@ static void init_hi6553(void)
 {
 	int data;
 
+	hi6553_write_8(PERI_EN_MARK, 0x1e);
+	hi6553_write_8(NP_REG_ADJ1, 0);
 	data = DISABLE6_XO_CLK_CONN | DISABLE6_XO_CLK_NFC |
 		DISABLE6_XO_CLK_RF1 | DISABLE6_XO_CLK_RF2;
 	hi6553_write_8(DISABLE6_XO_CLK, data);
@@ -161,7 +164,7 @@ static void init_pll(void)
 	udelay(100000);
 	do {
 		data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
-	} while ((data & (1 << 28)) != (1 << 28));
+	} while (!(data & (1 << 28)));
 
 	/* switch from slow mode to normal mode */
 	data = mmio_read_32(AO_SC_SYS_CTRL0);
@@ -179,8 +182,8 @@ static void init_freq(void)
 	unsigned int data, tmp;
 	unsigned int cpuext_cfg, ddr_cfg;
 
-	mmio_write_32(PMCTRL_ACPUDFTVOL, 0x1f);
-	mmio_write_32(PMCTRL_ACPUVOLPMUADDR, 0x6c);
+	mmio_write_32(PMCTRL_ACPUDFTVOL, 0x4a);
+	mmio_write_32(PMCTRL_ACPUVOLPMUADDR, 0xda);
 	mmio_write_32(PMCTRL_ACPUVOLUPSTEP, 0x01);
 	mmio_write_32(PMCTRL_ACPUVOLDNSTEP, 0x01);
 	mmio_write_32(PMCTRL_ACPUPMUVOLUPTIME, 0x60);
@@ -201,13 +204,13 @@ static void init_freq(void)
 	data &= ~PMCTRL_ACPUSYSPLL_CLKDIV_CFG_MASK;
 	data |= 0x5;
 	mmio_write_32(PMCTRL_ACPUSYSPLLCFG, data);
-	udelay(100000);
+	mdelay(1000);
 
 	do {
 		data = mmio_read_32(ACPU_SC_CPU_STAT);
 		data &= ACPU_SC_CPU_STAT_CLKDIV_VD_MASK;
 	} while (data != ACPU_SC_CPU_STAT_CLKDIV_VD_MASK);
-	udelay(100000);
+	mdelay(1000);
 
 	data = mmio_read_32(ACPU_SC_VD_CTRL);
 	data &= ~(ACPU_SC_VD_CTRL_TUNE_EN_DIF | ACPU_SC_VD_CTRL_TUNE_EN_INT);
@@ -221,13 +224,13 @@ static void init_freq(void)
 	data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 	data |= PMCTRL_ACPUPLLSEL_ACPUPLL_CFG;
 	mmio_write_32(PMCTRL_ACPUPLLSEL, data);
-	udelay(500000);
+	mdelay(1000);
 
 	do {
 		data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 		data &= PMCTRL_ACPUPLLSEL_SYSPLL_STAT;
 	} while (data != PMCTRL_ACPUPLLSEL_SYSPLL_STAT);
-	udelay(500000);
+	mdelay(1000);
 
 	data = mmio_read_32(ACPU_SC_VD_HPM_CTRL);
 	data &= ~ACPU_SC_VD_HPM_CTRL_OSC_DIV_MASK;
@@ -311,8 +314,7 @@ static void init_freq(void)
 		data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 		data &= PMCTRL_ACPUPLLSEL_ACPUPLL_STAT;
 	} while (data != PMCTRL_ACPUPLLSEL_ACPUPLL_STAT);
-	udelay(500000);
-	NOTICE("%s, %d\n", __func__, __LINE__);
+	mdelay(1000);
 
 	data = mmio_read_32(ACPU_SC_VD_CTRL);
 	data &= ~ACPU_SC_VD_CTRL_FORCE_CLK_EN;
@@ -322,8 +324,7 @@ static void init_freq(void)
 	data &= ~(PMCTRL_ACPUSYSPLLCFG_SYSPLL_CLKEN |
 		PMCTRL_ACPUSYSPLLCFG_CLKDIV_MASK);
 	mmio_write_32(PMCTRL_ACPUSYSPLLCFG, data);
-	udelay(500000);
-	NOTICE("%s, %d\n", __func__, __LINE__);
+	mdelay(1000);
 }
 
 #ifdef DDR
@@ -965,35 +966,53 @@ static void init_ddrc_qos(void)
 }
 #endif
 
+#if MMC_DEBUG
 static void init_mmc_pll(void)
 {
 	unsigned int data;
 
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	data = hi6553_read_8(LDO19_REG_ADJ);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	data |= 0x7;		/* 3.0V */
 	hi6553_write_8(LDO19_REG_ADJ, data);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* select syspll as mmc clock */
 	mmio_write_32(PERI_SC_CLK_SEL0, 1 << 5 | 1 << 21);
 	/* enable mmc0 clock */
-	mmio_write_32(PERI_SC_PERIPH_CLKEN0, 1 << 0);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
+	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
+	} while (!(data & PERI_CLK_MMC0));
 	/* enable source clock to mmc0 */
 	data = mmio_read_32(PERI_SC_PERIPH_CLKEN12);
 	data |= 1 << 1;
 	mmio_write_32(PERI_SC_PERIPH_CLKEN12, data);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* scale mmc frequency to 100MHz (divider as 12 since PLL is 1.2GHz */
 	mmio_write_32(PERI_SC_CLKCFG8BIT1, (1 << 7) | 0xb);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 }
+#endif
 
+#ifdef MMC_DEBUG
 static void reset_mmc0_clk(void)
 {
 	unsigned int data;
 
 	/* disable mmc0 bus clock */
-	mmio_write_32(PERI_SC_PERIPH_CLKDIS0, 1 << 0);
+	mmio_write_32(PERI_SC_PERIPH_CLKDIS0, PERI_CLK_MMC0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
+	} while (data & PERI_CLK_MMC0);
 	/* enable mmc0 bus clock */
-	mmio_write_32(PERI_SC_PERIPH_CLKEN0, 1 << 0);
+	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
+	} while (!(data & PERI_CLK_MMC0));
 	/* reset mmc0 clock domain */
-	mmio_write_32(PERI_SC_PERIPH_RSTEN0, 1 << 0);
+	mmio_write_32(PERI_SC_PERIPH_RSTEN0, PERI_CLK_MMC0);
 
 	/* bypass mmc0 clock phase */
 	data = mmio_read_32(PERI_SC_PERIPH_CTRL2);
@@ -1013,7 +1032,15 @@ static void reset_mmc0_clk(void)
 	do {
 		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
 	} while (data & (1 << 0));
+
+#if 0
+	do {
+		data = mmio_read_32(MMC0_STATUS);
+		NOTICE("#%s, %d, status:%x\n", __func__, __LINE__, data);
+	} while (data);
+#endif
 }
+#endif
 
 static int update_mmc0_clock(void)
 {
@@ -1036,26 +1063,35 @@ static int update_mmc0_clock(void)
 	return 0;
 }
 
+//#define MMC_PLL			100000000
+#define MMC_PLL			19200000
+
 static int set_mmc0_clock(int rate)
 {
 	int ret, divider, found = 0;
+	unsigned int data;
 
 	for (divider = 1; divider < 256; divider++) {
-		if ((100000000 / (2 * divider)) <= rate) {
+		if ((MMC_PLL / (2 * divider)) <= rate) {
 			found = 1;
 			break;
 		}
 	}
-	//NOTICE("#%s, %d, found:%d\n", __func__, __LINE__, found);
 	if (!found)
 		return -EINVAL;
+	NOTICE("#%s, %d, divider:%d\n", __func__, __LINE__, divider);
+
+	do {
+		data = mmio_read_32(MMC0_STATUS);
+	} while (data & MMC_STS_DATA_BUSY);
 
 	/* Disable mmc clock first */
+	mmio_write_32(MMC0_CLKENA, 0);
 	do {
-		mmio_write_32(MMC0_CLKENA, 0);
 		ret = update_mmc0_clock();
 	} while (ret);
 
+#if 0
 	do {
 		mmio_write_32(MMC0_CLKDIV, divider);
 		ret = update_mmc0_clock();
@@ -1064,8 +1100,17 @@ static int set_mmc0_clock(int rate)
 	/* enable mmc clock */
 	do {
 		mmio_write_32(MMC0_CLKENA, 1);
+		mmio_write_32(MMC0_CLKSRC, 0);
 		ret = update_mmc0_clock();
 	} while (ret);
+#else
+		mmio_write_32(MMC0_CLKENA, 1);
+		mmio_write_32(MMC0_CLKSRC, 0);
+		mmio_write_32(MMC0_CLKDIV, divider);
+	do {
+		ret = update_mmc0_clock();
+	} while (ret);
+#endif
 	return 0;
 }
 
@@ -1083,6 +1128,7 @@ static void enable_mmc0_clock(int enable)
 }
 #endif
 
+#ifdef MMC_DEBUG
 static void set_mmc0_io(void)
 {
 	mmio_write_32(MMC0_CTYPE, MMC_8BIT_MODE);
@@ -1091,6 +1137,7 @@ static void set_mmc0_io(void)
 	mmio_write_32(MMC0_BLKSIZ, MMC_BLOCK_SIZE);
 	mmio_write_32(MMC0_BYTCNT, 256 * 1024);
 }
+#endif
 
 static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 {
@@ -1107,6 +1154,7 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 	NOTICE("#%s, %d\n", __func__, __LINE__);
 
 	mmio_write_32(MMC0_CMDARG, arg);
+
 	/* clear interrupts */
 	mmio_write_32(MMC0_RINTSTS, ~0);
 
@@ -1166,6 +1214,7 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 		break;
 	}
 	data |= (cmd & 0x3f) | BIT_CMD_USE_HOLD_REG | BIT_CMD_START;
+	NOTICE("#%s, cmd:%d, data:%x\n", __func__, cmd, data);
 	mmio_write_32(MMC0_CMD, data);
 #if 1
 	err_mask = MMC_INT_EBE | MMC_INT_HLE | MMC_INT_RTO | MMC_INT_RCRC |
@@ -1299,7 +1348,7 @@ static int manu_id;
 static int enum_mmc0_card(void)
 {
 	unsigned int buf[4], cid[4];
-	int ret, i, version;
+	int ret = 0, i, version;
 
 	/* switch to 1-bit mode */
 #if 0
@@ -1396,10 +1445,10 @@ static int enum_mmc0_card(void)
 #define BOOT_PARTITION			(1 << 3)
 #define RW_PARTITION_DEFAULT		0
 
+#ifdef MMC_DEBUG
 static int enable_mmc0(void)
 {
 	unsigned int data;
-	//int ret;
 
 	/* reset mmc0 */
 	data = MMC_CTRL_RESET | MMC_FIFO_RESET | MMC_DMA_RESET;
@@ -1409,7 +1458,8 @@ static int enable_mmc0(void)
 		data = mmio_read_32(MMC0_CTRL);
 	} while (data);
 
-	data |= MMC_INT_EN | MMC_DMA_EN;
+#if 1
+	data = MMC_INT_EN | MMC_DMA_EN;
 	mmio_write_32(MMC0_CTRL, data);
 
 	mmio_write_32(MMC0_INTMASK, 0x0);
@@ -1430,17 +1480,27 @@ static int enable_mmc0(void)
 	mmio_write_32(MMC0_FIFOTH, data);
 	data = MMC_CARD_RD_THR(512) | MMC_CARD_RD_THR_EN;
 	mmio_write_32(MMC0_CARDTHRCTL, data);
+#endif
 
-	udelay(50000);
+	for (data = 0; data <= 30000; data++) {
+		udelay(5000000);
+		//NOTICE(".");
+	}
 
-	set_mmc0_clock(384000);
+	set_mmc0_clock(378000);
 
-	udelay(10000);
+	for (data = 0; data <= 30000; data++) {
+		udelay(5000000);
+		//NOTICE(".");
+	}
+#ifdef MMC_DEBUG
 	set_mmc0_io();
+#endif
 	return 0;
 }
+#endif
 
-#if 1
+#if 0
 static void stop_emmc_boot(void)
 {
 	unsigned int data;
@@ -1469,9 +1529,14 @@ static void init_mmc(void)
 	unsigned int buf[4];
 	int ret;
 
-	init_mmc_pll();
+#ifdef MMC_DEBUG
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	reset_mmc0_clk();
+	NOTICE("#%s, %d\n", __func__, __LINE__);
+	init_mmc_pll();
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	enable_mmc0();
+#endif
 
 	NOTICE("#%s, %d\n", __func__, __LINE__);
 	ret = enum_mmc0_card();
@@ -1508,9 +1573,9 @@ void bl1_early_platform_setup(void)
 
 	/* Initialize the console to provide early debug support */
 	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
-	stop_emmc_boot();
 	init_timer();
 	init_pmussi();
+	init_mmc();
 	init_hi6553();
 	init_pll();
 	init_freq();
@@ -1521,8 +1586,16 @@ void bl1_early_platform_setup(void)
 	mmio_write_32(0x0, 0xa5a55a5a);
 	NOTICE("ddr test value:0x%x\n", mmio_read_32(0x0));
 #endif
+	query_clk_freq(0);
+	query_clk_freq(CLK_MMC0_SRC);
+	query_clk_freq(CLK_SLOW_OFF_SRC);
+	query_clk_freq(CLK_SYSPLL_SRC);
+	query_clk_freq(CLK_SYS_ON);
+	query_clk_freq(CLK_DDRPLL_SRC);
+	query_clk_freq(CLK_UART1_SRC);
+	//init_mmc();
 
-	init_mmc();
+	stop_emmc_boot();
 }
 
 /*******************************************************************************

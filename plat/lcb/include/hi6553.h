@@ -40,6 +40,7 @@
 #define DISABLE6_XO_CLK_RF1			(1 << 3)
 #define DISABLE6_XO_CLK_RF2			(1 << 4)
 
+#define PERI_EN_MARK				0x040
 #define BUCK2_REG1				0x04a
 #define BUCK2_REG5				0x04e
 #define BUCK2_REG6				0x04f
@@ -56,6 +57,7 @@
 #define VSET_BUCK3_ADJ				0x06e
 #define LDO19_REG_ADJ				0x084
 #define LDO20_REG_ADJ				0x085
+#define NP_REG_ADJ1				0x0be
 #define NP_REG_CHG				0x0c0
 #define BUCK01_CTRL2				0x0d9
 #define BUCK0_CTRL1				0x0dd
