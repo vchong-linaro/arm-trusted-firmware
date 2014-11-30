@@ -49,6 +49,7 @@
 #include "lcb_def.h"
 
 //#define DDR
+#define MMC_DEBUG
 
 /* Data structure which holds the extents of the trusted RAM for BL1 */
 static meminfo_t bl1_tzram_layout;
@@ -966,7 +967,7 @@ static void init_ddrc_qos(void)
 }
 #endif
 
-#if MMC_DEBUG
+#ifdef MMC_DEBUG
 static void init_mmc_pll(void)
 {
 	unsigned int data;
@@ -1063,8 +1064,8 @@ static int update_mmc0_clock(void)
 	return 0;
 }
 
-//#define MMC_PLL			100000000
-#define MMC_PLL			19200000
+#define MMC_PLL			100000000
+//#define MMC_PLL			19200000
 
 static int set_mmc0_clock(int rate)
 {
@@ -1091,7 +1092,7 @@ static int set_mmc0_clock(int rate)
 		ret = update_mmc0_clock();
 	} while (ret);
 
-#if 0
+#if 1
 	do {
 		mmio_write_32(MMC0_CLKDIV, divider);
 		ret = update_mmc0_clock();
@@ -1482,17 +1483,10 @@ static int enable_mmc0(void)
 	mmio_write_32(MMC0_CARDTHRCTL, data);
 #endif
 
-	for (data = 0; data <= 30000; data++) {
-		udelay(5000000);
-		//NOTICE(".");
-	}
-
+	udelay(100);
 	set_mmc0_clock(378000);
+	udelay(100);
 
-	for (data = 0; data <= 30000; data++) {
-		udelay(5000000);
-		//NOTICE(".");
-	}
 #ifdef MMC_DEBUG
 	set_mmc0_io();
 #endif
@@ -1531,9 +1525,9 @@ static void init_mmc(void)
 
 #ifdef MMC_DEBUG
 	NOTICE("#%s, %d\n", __func__, __LINE__);
-	reset_mmc0_clk();
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	init_mmc_pll();
+	NOTICE("#%s, %d\n", __func__, __LINE__);
+	reset_mmc0_clk();
 	NOTICE("#%s, %d\n", __func__, __LINE__);
 	enable_mmc0();
 #endif

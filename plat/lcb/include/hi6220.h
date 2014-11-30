@@ -243,9 +243,9 @@
 
 #define MMC0_BASE				0xf723d000
 #define MMC0_CTRL				(MMC0_BASE + 0x000)
-#define MMC0_CLKENA				(MMC0_BASE + 0x004)
 #define MMC0_CLKDIV				(MMC0_BASE + 0x008)
 #define MMC0_CLKSRC				(MMC0_BASE + 0x00c)
+#define MMC0_CLKENA				(MMC0_BASE + 0x010)
 #define MMC0_TMOUT				(MMC0_BASE + 0x014)
 #define MMC0_CTYPE				(MMC0_BASE + 0x018)
 #define MMC0_BLKSIZ				(MMC0_BASE + 0x01c)
