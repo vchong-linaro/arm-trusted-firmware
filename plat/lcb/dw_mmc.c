@@ -1,3 +1,34 @@
+/*
+ * Copyright (c) 2014, Hisilicon Ltd.
+ * Copyright (c) 2014, Linaro Ltd.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * Neither the name of ARM nor the names of its contributors may be used
+ * to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <console.h>
 #include <debug.h>
 #include <errno.h>
@@ -14,16 +45,12 @@ static void init_mmc_pll(void)
 {
 	unsigned int data;
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	data = hi6553_read_8(LDO19_REG_ADJ);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	data |= 0x7;		/* 3.0V */
 	hi6553_write_8(LDO19_REG_ADJ, data);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* select syspll as mmc clock */
 	mmio_write_32(PERI_SC_CLK_SEL0, 1 << 5 | 1 << 21);
 	/* enable mmc0 clock */
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
 	do {
 		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
@@ -32,10 +59,8 @@ static void init_mmc_pll(void)
 	data = mmio_read_32(PERI_SC_PERIPH_CLKEN12);
 	data |= 1 << 1;
 	mmio_write_32(PERI_SC_PERIPH_CLKEN12, data);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* scale mmc frequency to 100MHz (divider as 12 since PLL is 1.2GHz */
 	mmio_write_32(PERI_SC_CLKCFG8BIT1, (1 << 7) | 0xb);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 }
 
 static void reset_mmc0_clk(void)
@@ -109,8 +134,8 @@ static int set_mmc0_clock(int rate)
 	}
 	if (!found)
 		return -EINVAL;
-	NOTICE("#%s, %d, divider:%d\n", __func__, __LINE__, divider);
 
+	/* wait until mmc is idle */
 	do {
 		data = mmio_read_32(MMC0_STATUS);
 	} while (data & MMC_STS_DATA_BUSY);
@@ -146,17 +171,12 @@ static void set_mmc0_io(void)
 
 static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 {
-#if 1
 	unsigned int data, err_mask;
-#else
-	unsigned int data;
-#endif
 
 	if (!buf) {
 		NOTICE("buf is invalid\n");
 		return -EFAULT;
 	}
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 
 	mmio_write_32(MMC0_CMDARG, arg);
 
@@ -219,17 +239,11 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 		break;
 	}
 	data |= (cmd & 0x3f) | BIT_CMD_USE_HOLD_REG | BIT_CMD_START;
-	NOTICE("#%s, cmd:%d, data:%x\n", __func__, cmd, data);
 	mmio_write_32(MMC0_CMD, data);
-#if 1
 	err_mask = MMC_INT_EBE | MMC_INT_HLE | MMC_INT_RTO | MMC_INT_RCRC |
 		   MMC_INT_RE;
-#endif
-	//NOTICE("#%s, %d, data:%x\n", __func__, __LINE__, data);
 	do {
 		data = mmio_read_32(MMC0_RINTSTS);
-		if (data)
-			NOTICE("#%s, %d, data:%x\n", __func__, __LINE__, data);
 		if (data & err_mask)
 			return data;
 	} while (!(data & MMC_INT_CMD_DONE));
@@ -340,17 +354,15 @@ static int enum_mmc0_card(void)
 	unsigned int buf[4], cid[4];
 	int ret = 0, i, version;
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* CMD0: IDLE */
 	ret = mmc0_send_cmd(0, 0, buf);
-	NOTICE("#%s, %d, ret:%d\n", __func__, __LINE__, ret);
 	if (ret) {
 		NOTICE("failed to send IDLE command\n");
 		return ret;
 	}
 
 	while (1) {
-		udelay(1000);
+		udelay(100);
 		/* CMD1: READY */
 		ret = mmc0_send_cmd(1, 0x40ff8000, buf);
 		if (ret) {
@@ -370,7 +382,6 @@ static int enum_mmc0_card(void)
 	for (i = 0; i < 4; i++)
 		cid[i] = buf[i];
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	/* CMD3: STBY */
 	ret = mmc0_send_cmd(3, EMMC_FIX_RCA << 16, buf);
 	if (ret) {
@@ -384,7 +395,6 @@ static int enum_mmc0_card(void)
 		NOTICE("failed to get CSD\n");
 		return ret;
 	}
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	version = (buf[3] >> 26) & 0xf;
 	switch (version) {
 	case 0:	/* MMC v1.0-v1.2 */
@@ -401,7 +411,7 @@ static int enum_mmc0_card(void)
 		break;
 	}
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
+	NOTICE("mmc version:%d\n", version);
 	/* CMD7: TRAN */
 	ret = mmc0_send_cmd(7, EMMC_FIX_RCA << 16, buf);
 	if (ret) {
@@ -414,10 +424,8 @@ static int enum_mmc0_card(void)
 	if (ret) {
 		NOTICE("alter HS mode fail\n");
 	}
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 
 	ret = mmc0_set_clock_and_width(50000000, 8);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	return 0;
 }
 
@@ -437,7 +445,6 @@ static int enable_mmc0(void)
 		data = mmio_read_32(MMC0_CTRL);
 	} while (data);
 
-#if 1
 	data = MMC_INT_EN | MMC_DMA_EN;
 	mmio_write_32(MMC0_CTRL, data);
 
@@ -449,7 +456,6 @@ static int enable_mmc0(void)
 	mmio_write_32(MMC0_BMOD, MMC_IDMAC_SWRESET);
 	do {
 		data = mmio_read_32(MMC0_BMOD);
-		//NOTICE("#%s, %d, data:%x\n", __func__, __LINE__, data);
 	} while (data & MMC_IDMAC_SWRESET);
 
 	data |= MMC_IDMAC_ENABLE | MMC_IDMAC_FB;
@@ -459,7 +465,6 @@ static int enable_mmc0(void)
 	mmio_write_32(MMC0_FIFOTH, data);
 	data = MMC_CARD_RD_THR(512) | MMC_CARD_RD_THR_EN;
 	mmio_write_32(MMC0_CARDTHRCTL, data);
-#endif
 
 	udelay(100);
 	set_mmc0_clock(378000);
@@ -475,18 +480,13 @@ void init_mmc(void)
 	unsigned int buf[4];
 	int ret;
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	init_mmc_pll();
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	reset_mmc0_clk();
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	enable_mmc0();
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	ret = enum_mmc0_card();
 	if (ret)
 		return;
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 
 	/* set boot mode to 8-bit */
 	mmc0_update_ext_csd(177, 2);
@@ -496,7 +496,6 @@ void init_mmc(void)
 	mmc0_update_ext_csd(EXTCSD_PARTITION_CONFIG, BOOT_PARTITION | RW_PARTITION_DEFAULT);
 
 	mmio_write_32(MMC0_RINTSTS, ~0);
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 
 	ret = mmc0_send_cmd(23, 0, buf);
 	if (ret) {
@@ -504,6 +503,5 @@ void init_mmc(void)
 		mmio_write_32(MMC0_RINTSTS, ~0);
 		return;
 	}
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	mmio_write_32(MMC0_RINTSTS, ~0);
 }
