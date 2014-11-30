@@ -983,14 +983,7 @@ void bl1_early_platform_setup(void)
 	NOTICE("ddr test value:0x%x\n", mmio_read_32(0x0));
 #endif
 	init_mmc();
-	query_clk_freq(0);
 	query_clk_freq(CLK_MMC0_SRC);
-	query_clk_freq(CLK_SLOW_OFF_SRC);
-	query_clk_freq(CLK_SYSPLL_SRC);
-	query_clk_freq(CLK_SYS_ON);
-	query_clk_freq(CLK_DDRPLL_SRC);
-	query_clk_freq(CLK_UART1_SRC);
-	//init_mmc();
 }
 
 /*******************************************************************************
