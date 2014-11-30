@@ -65,5 +65,6 @@ BL1_SOURCES		+=	drivers/arm/cci400/cci400.c		\
 				plat/lcb/bl1_plat_setup.c		\
 				plat/lcb/pll.c				\
 				plat/lcb/sp804_timer.c			\
+				plat/lcb/dw_mmc.c			\
 				plat/lcb/drivers/pmic/hi6553.c		\
 				plat/lcb/drivers/gpio/gpio.c
