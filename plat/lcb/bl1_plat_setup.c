@@ -64,24 +64,6 @@ static void init_pmussi(void)
 {
 	uint32_t data;
 
-	data = mmio_read_32(PERI_SC_PERIPH_CTRL13);
-	NOTICE("#%s, periph ctl13:%x\n", __func__, data);
-	data = mmio_read_32(PERI_SC_PERIPH_CTRL14);
-	NOTICE("#%s, periph ctrl14:%x\n", __func__, data);
-	query_clk_freq(0);
-	query_clk_freq(CLK_MMC0_SRC);
-	query_clk_freq(CLK_SLOW_OFF_SRC);
-	query_clk_freq(CLK_SYSPLL_SRC);
-	query_clk_freq(CLK_SYS_ON);
-	query_clk_freq(CLK_DDRPLL_SRC);
-	query_clk_freq(CLK_UART1_SRC);
-#if 0
-	data |= 1 << 3;
-	mmio_write_32(PERI_SC_PERIPH_CTRL13, data);
-	do {
-		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
-	} while (!(data & (1 << 0)));
-#endif
 	/*
 	 * After reset, PMUSSI stays in reset mode.
 	 * Now make it out of reset.
@@ -162,7 +144,7 @@ static void init_pll(void)
 	data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
 	data |= 0x1;
 	mmio_write_32(PMCTRL_ACPUPLLCTRL, data);
-	udelay(100000);
+	mdelay(10);
 	do {
 		data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
 	} while (!(data & (1 << 28)));
@@ -225,13 +207,12 @@ static void init_freq(void)
 	data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 	data |= PMCTRL_ACPUPLLSEL_ACPUPLL_CFG;
 	mmio_write_32(PMCTRL_ACPUPLLSEL, data);
-	mdelay(1000);
 
 	do {
 		data = mmio_read_32(PMCTRL_ACPUPLLSEL);
 		data &= PMCTRL_ACPUPLLSEL_SYSPLL_STAT;
 	} while (data != PMCTRL_ACPUPLLSEL_SYSPLL_STAT);
-	mdelay(1000);
+	udelay(100);
 
 	data = mmio_read_32(ACPU_SC_VD_HPM_CTRL);
 	data &= ~ACPU_SC_VD_HPM_CTRL_OSC_DIV_MASK;
@@ -265,9 +246,7 @@ static void init_freq(void)
 
 	mmio_write_32(PMCTRL_ACPUPLLFREQ, 0x5110207d);
 	mmio_write_32(PMCTRL_ACPUPLLFRAC, 0x10000005);
-
-	/* busy loop */
-	for (data = 0; data < 200; data++) {}
+	data = mmio_read_32(PMCTRL_ACPUPLLFRAC);
 
 	/* enable ACPUPLL */
 	data = mmio_read_32(PMCTRL_ACPUPLLCTRL);
@@ -325,7 +304,6 @@ static void init_freq(void)
 	data &= ~(PMCTRL_ACPUSYSPLLCFG_SYSPLL_CLKEN |
 		PMCTRL_ACPUSYSPLLCFG_CLKDIV_MASK);
 	mmio_write_32(PMCTRL_ACPUSYSPLLCFG, data);
-	mdelay(1000);
 }
 
 #ifdef DDR
