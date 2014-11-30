@@ -49,7 +49,7 @@
 #include "../../bl1/bl1_private.h"
 #include "lcb_def.h"
 
-//#define DDR
+#define DDR
 
 /* Data structure which holds the extents of the trusted RAM for BL1 */
 static meminfo_t bl1_tzram_layout;
@@ -635,8 +635,9 @@ static void set_ddrc_533mhz(void)
 	mmio_write_32(PERI_SC_PERIPH_CLKEN8, 0x5ffff);
 	mmio_write_32(PERI_SC_PERIPH_RSTDIS8, 0xf5ff);
 	mmio_write_32(MDDRC_PACK_DDRC_PHYCLKGATED, 0x400);
+	udelay(100);
 	mmio_write_32(MDDRC_PACK_DDRC_PLLCTRL, 0x7);
-	mmio_write_32(MDDRC_PACK_DDRC_PHYCTRL1, 0x090);
+	mmio_write_32(MDDRC_PACK_DDRC_PHYCTRL1, 0x6400000);
 	mmio_write_32(MDDRC_PACK_DDRC_DXPHYCTRL0, 0x640);
 	mmio_write_32(MDDRC_PACK_DDRC_DXPHYCTRL1, 0x640);
 	mmio_write_32(MDDRC_PACK_DDRC_DXPHYCTRL2, 0x640);
@@ -696,53 +697,7 @@ static void set_ddrc_533mhz(void)
 		NOTICE("failed to init lpddr3 rank0 dram phy\n");
 		return;
 	}
-	INFO("succeed to init lpddr3 rank0 dram phy\n");
-
-	data = cat_533mhz_800mhz();
-	if (data)
-		NOTICE("fail to set eye diagram\n");
-
-	mmio_write_32(MDDRC_PACK_DDRC_PHYINITCTRL, 0xf1);
-	mmio_write_32(MDDRC_DMC_CFG_DDRMODE, 0x100123);
-	mmio_write_32(MDDRC_DMC_CFG_RNKVOL0, 0x133);
-	mmio_write_32(MDDRC_DMC_CFG_RNKVOL1, 0x133);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING0, 0xb77b6718);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING1, 0x1e82a071);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING2, 0x9501c07e);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING3, 0xaf50c255);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING4, 0x10b00000);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING5, 0x13181908);
-	mmio_write_32(MDDRC_DMC_CFG_TIMING6, 0x44);
-	do {
-		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITCTRL);
-	} while (data & 1);
-
-	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
-	if (data & 0x7fe) {
-		NOTICE("fail to init ddr3 rank0 in 533MHz\n");
-		return;
-	}
-	INFO("init ddr3 rank0 in 533MHz\n");
-	ddrx_rdet();
-	ddrx_wdet();
-
-	data = mmio_read_32(MDDRC_PACK_DDRC_TRAINCTRL0);
-	data |= 1;
-	mmio_write_32(MDDRC_PACK_DDRC_TRAINCTRL0, data);
-	mmio_write_32(MDDRC_PACK_DDRC_PHYINITCTRL, 0x21);
-	do {
-		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITCTRL);
-	} while (data & 1);
-
-	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
-	if (data & 0x7fe)
-		NOTICE("ddr3 rank1 init faile in 533MHz\n");
-	else
-		INFO("ddr3 rank1 init pass in 533MHz\n");
-
-	data = mmio_read_32(MDDRC_PACK_DDRC_TRAINCTRL0);
-	data &= ~0xf;
-	mmio_write_32(MDDRC_PACK_DDRC_TRAINCTRL0, data);
+	NOTICE("succeed to init lpddr3 rank0 dram phy\n");
 }
 
 static void ddrc_common_init(void)
@@ -870,10 +825,67 @@ static int detect_ddr_chip_info(void)
 	return data;
 }
 
-static void init_ddr(void)
+static int lpddr3_freq_init(void)
 {
 	unsigned int data;
 
+	set_ddrc_533mhz();
+	NOTICE("#%s, %d set ddrc 533mhz\n", __func__, __LINE__);
+
+	data = cat_533mhz_800mhz();
+	if (data)
+		NOTICE("fail to set eye diagram\n");
+
+	mmio_write_32(MDDRC_PACK_DDRC_PHYINITCTRL, 0xf1);
+	mmio_write_32(MDDRC_DMC_CFG_DDRMODE, 0x100123);
+	mmio_write_32(MDDRC_DMC_CFG_RNKVOL0, 0x133);
+	mmio_write_32(MDDRC_DMC_CFG_RNKVOL1, 0x133);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING0, 0xb77b6718);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING1, 0x1e82a071);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING2, 0x9501c07e);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING3, 0xaf50c255);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING4, 0x10b00000);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING5, 0x13181908);
+	mmio_write_32(MDDRC_DMC_CFG_TIMING6, 0x44);
+	do {
+		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITCTRL);
+	} while (data & 1);
+
+	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
+	if (data & 0x7fe) {
+		NOTICE("fail to init ddr3 rank0 in 533MHz\n");
+		return -EFAULT;
+	}
+	INFO("init ddr3 rank0 in 533MHz\n");
+	ddrx_rdet();
+	ddrx_wdet();
+
+	data = mmio_read_32(MDDRC_PACK_DDRC_TRAINCTRL0);
+	data |= 1;
+	mmio_write_32(MDDRC_PACK_DDRC_TRAINCTRL0, data);
+	mmio_write_32(MDDRC_PACK_DDRC_PHYINITCTRL, 0x21);
+	do {
+		data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITCTRL);
+	} while (data & 1);
+
+	data = mmio_read_32(MDDRC_PACK_DDRC_PHYINITSTATUS);
+	if (data & 0x7fe)
+		NOTICE("ddr3 rank1 init faile in 533MHz\n");
+	else
+		INFO("ddr3 rank1 init pass in 533MHz\n");
+
+	data = mmio_read_32(MDDRC_PACK_DDRC_TRAINCTRL0);
+	data &= ~0xf;
+	mmio_write_32(MDDRC_PACK_DDRC_TRAINCTRL0, data);
+	return 0;
+}
+
+static void init_ddr(void)
+{
+	unsigned int data;
+	int ret;
+
+	/* BUCK2: 1.104V, BUCK3: 1.3V */
 	hi6553_write_8(VSET_BUCK2_ADJ, 0x26);
 	hi6553_write_8(VSET_BUCK3_ADJ, 0x04);
 
@@ -896,7 +908,10 @@ static void init_ddr(void)
 		data &= 3 << 28;
 	} while (data != (3 << 28));
 
-	set_ddrc_533mhz();
+	NOTICE("#%s, %d\n", __func__, __LINE__);
+	ret = lpddr3_freq_init();
+	if (ret)
+		return;
 
 	ddrc_common_init();
 	dienum_det_and_rowcol_cfg();
@@ -979,7 +994,6 @@ void bl1_early_platform_setup(void)
 	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
 	init_timer();
 	init_pmussi();
-	init_mmc();
 	init_hi6553();
 	init_pll();
 	init_freq();
@@ -990,6 +1004,7 @@ void bl1_early_platform_setup(void)
 	mmio_write_32(0x0, 0xa5a55a5a);
 	NOTICE("ddr test value:0x%x\n", mmio_read_32(0x0));
 #endif
+	init_mmc();
 	query_clk_freq(0);
 	query_clk_freq(CLK_MMC0_SRC);
 	query_clk_freq(CLK_SLOW_OFF_SRC);
