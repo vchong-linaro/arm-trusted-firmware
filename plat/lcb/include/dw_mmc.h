@@ -53,8 +53,11 @@
 #define MMC0_DEBNCE				(MMC0_BASE + 0x064)
 #define MMC0_UHSREG				(MMC0_BASE + 0x074)
 #define MMC0_BMOD				(MMC0_BASE + 0x080)
+#define MMC0_DBADDR				(MMC0_BASE + 0x088)
 #define MMC0_IDSTS				(MMC0_BASE + 0x08c)
 #define MMC0_IDINTEN				(MMC0_BASE + 0x090)
+#define MMC0_DSCADDR				(MMC0_BASE + 0x094)
+#define MMC0_BUFADDR				(MMC0_BASE + 0x098)
 #define MMC0_CARDTHRCTL				(MMC0_BASE + 0X100)
 
 #define CMD_UPDATE_CLK				0x80202000
@@ -88,12 +91,19 @@
 #define BIT_CMD_USE_HOLD_REG			(1 << 29)
 #define BIT_CMD_START				(1 << 31)
 
-#define MMC_INT_EBE				(1 << 15)
-#define MMC_INT_HLE				(1 << 12)
-#define MMC_INT_RTO				(1 << 8)
-#define MMC_INT_RCRC				(1 << 6)
-#define MMC_INT_CMD_DONE			(1 << 2)
-#define MMC_INT_RE				(1 << 1)
+#define MMC_INT_EBE			(1 << 15)	/* End-bit Err */
+#define MMC_INT_SBE			(1 << 13)	/* Start-bit  Err */
+#define MMC_INT_HLE			(1 << 12)	/* Hardware-lock Err */
+#define MMC_INT_FRUN			(1 << 11)	/* FIFO UN/OV RUN */
+#define MMC_INT_DRT			(1 << 9)	/* Data timeout */
+#define MMC_INT_RTO			(1 << 8)	/* Response timeout */
+#define MMC_INT_DCRC			(1 << 7)	/* Data CRC err */
+#define MMC_INT_RCRC			(1 << 6)	/* Response CRC err */
+#define MMC_INT_RXDR			(1 << 5)
+#define MMC_INT_TXDR			(1 << 4)
+#define MMC_INT_DTO			(1 << 3)	/* Data trans over */
+#define MMC_INT_CMD_DONE		(1 << 2)
+#define MMC_INT_RE			(1 << 1)
 
 #define EMMC_FIX_RCA				6
 
@@ -118,5 +128,6 @@
 #define MMC_CARD_RD_THR_EN			(1 << 0)
 
 extern void init_mmc(void);
+extern int mmc0_read(unsigned int, unsigned int, unsigned int);
 
 #endif /* __DW_MMC_H */

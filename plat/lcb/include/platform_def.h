@@ -87,12 +87,17 @@
  * enough. We need to update it later.
  ******************************************************************************/
 #define BL1_RAM_BYPASS_OFFSET		0x00002000
-#define TZROM_BASE			0xF9800000 + BL1_RAM_BYPASS_OFFSET
+#define TZROM_BASE			(0xF9800000 + BL1_RAM_BYPASS_OFFSET)
 #define TZROM_SIZE			0x00008000
-#define TZRAM_BASE			TZROM_BASE + TZROM_SIZE
+#define TZRAM_BASE			(TZROM_BASE + TZROM_SIZE)
 #define TZRAM_SIZE			0x00008000
 
 #define DDR_BASE			0x00000000
+
+#define MMC_DESC_BASE			(DDR_BASE + 0x0080000)
+#define MMC_DESC_SIZE			0x00020000
+#define MMC_DATA_BASE			(MMC_DESC_BASE + MMC_DESC_SIZE)
+#define MMC_DATA_SIZE			0x00800000
 
 /*******************************************************************************
  * BL1 specific defines.
@@ -102,7 +107,7 @@
 #define BL1_RO_BASE			TZROM_BASE
 #define BL1_RO_LIMIT			(TZROM_BASE + TZROM_SIZE)
 #define BL1_RW_BASE			TZRAM_BASE
-#define BL1_RW_LIMIT			(TZRAM_BASE + TZRAM_SIZE)
+#define BL1_RW_LIMIT			(TZRAM_BASE + TZRAM_SIZE + MMC_DESC_SIZE)
 
 /*******************************************************************************
  * BL2 specific defines.

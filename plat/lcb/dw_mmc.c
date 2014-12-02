@@ -36,10 +36,30 @@
 #include <string.h>
 #include <sp804_timer.h>
 #include <dw_mmc.h>
+#include <partitions.h>
+#include <platform_def.h>
 #include <hi6220.h>
 #include <hi6553.h>
 
 #define MMC_PLL			100000000
+
+#define IDMAC_DES0_DIC		(1 << 1)
+#define IDMAC_DES0_LD		(1 << 2)
+#define IDMAC_DES0_FS		(1 << 3)
+#define IDMAC_DES0_CH		(1 << 4)
+#define IDMAC_DES0_ER		(1 << 5)
+#define IDMAC_DES0_CES		(1 << 30)
+#define IDMAC_DES0_OWN		(1 << 31)
+
+#define IDMAC_DES1_BS1(x)	((x) & 0x1fff)
+#define IDMAC_DES2_BS2(x)	(((x) & 0x1fff) << 13)
+
+struct idmac_desc {
+	unsigned int		des0;
+	unsigned int		des1;
+	unsigned int		des2;
+	unsigned int		des3;
+};
 
 static void init_mmc_pll(void)
 {
@@ -354,7 +374,7 @@ static int enum_mmc0_card(void)
 	unsigned int buf[4], cid[4];
 	int ret = 0, i, version;
 
-	/* CMD0: IDLE */
+	/* CMD0: reset to IDLE */
 	ret = mmc0_send_cmd(0, 0, buf);
 	if (ret) {
 		NOTICE("failed to send IDLE command\n");
@@ -379,8 +399,12 @@ static int enum_mmc0_card(void)
 		NOTICE("failed to send IDENT command\n");
 		return ret;
 	}
-	for (i = 0; i < 4; i++)
+	NOTICE("manuid:");
+	for (i = 0; i < 4; i++) {
 		cid[i] = buf[i];
+		NOTICE(" 0x%x", cid[i]);
+	}
+	NOTICE("\n");
 
 	/* CMD3: STBY */
 	ret = mmc0_send_cmd(3, EMMC_FIX_RCA << 16, buf);
@@ -426,7 +450,7 @@ static int enum_mmc0_card(void)
 	}
 
 	ret = mmc0_set_clock_and_width(50000000, 8);
-	return 0;
+	return ret;
 }
 
 #define EXTCSD_PARTITION_CONFIG		179
@@ -474,6 +498,94 @@ static int enable_mmc0(void)
 	return 0;
 }
 
+#define MMC_BLOCK_SIZE			512
+#define MMC_DMA_MAX_BUFFER_SIZE		(512 * 8)
+
+int mmc0_read(unsigned int src_start, unsigned int src_size,
+		unsigned int dst_start)
+{
+	unsigned int src_blk_start = src_start / MMC_BLOCK_SIZE;
+	unsigned int src_blk_cnt, offset, bytes, desc_num, buf[4], data;
+	struct idmac_desc *desc = NULL;
+	int i, ret, last_idx;
+
+	offset = src_start % MMC_BLOCK_SIZE;
+	if (offset) {
+		NOTICE("The source address isn't aligned with MMC block!\n");
+		return -EFAULT;
+	}
+	src_blk_cnt = (src_size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
+	bytes = src_blk_cnt * MMC_BLOCK_SIZE;
+
+	mmio_write_32(MMC0_BLKSIZ, MMC_BLOCK_SIZE);
+	mmio_write_32(MMC0_BYTCNT, bytes);
+
+	mmio_write_32(MMC0_RINTSTS, ~0);
+
+	desc_num = (bytes + MMC_DMA_MAX_BUFFER_SIZE - 1) /
+		   MMC_DMA_MAX_BUFFER_SIZE;
+
+	desc = (struct idmac_desc *)MMC_DESC_BASE;
+
+	for (i = 0; i < desc_num; i++) {
+		(desc + i)->des0 = IDMAC_DES0_OWN | IDMAC_DES0_CH |
+				   IDMAC_DES0_DIC;
+		(desc + i)->des1 = IDMAC_DES1_BS1(MMC_DMA_MAX_BUFFER_SIZE);
+		/* buffer address */
+		(desc + i)->des2 = MMC_DATA_BASE + MMC_DMA_MAX_BUFFER_SIZE * i;
+		/* next descriptor address */
+		(desc + i)->des3 = MMC_DESC_BASE +
+				   (sizeof(struct idmac_desc) * (i + 1));
+		NOTICE("buffer:%x\n", (desc + i)->des2);
+	}
+	/* first descriptor */
+	desc->des0 |= IDMAC_DES0_FS;
+	/* last descriptor */
+	last_idx = desc_num - 1;
+	(desc + last_idx)->des0 |= IDMAC_DES0_LD;
+	(desc + last_idx)->des0 &= ~(IDMAC_DES0_DIC | IDMAC_DES0_CH);
+	(desc + last_idx)->des1 = IDMAC_DES1_BS1(bytes - (last_idx *
+				  MMC_DMA_MAX_BUFFER_SIZE));
+	/* set next descriptor address as 0 */
+	(desc + last_idx)->des3 = 0;
+
+	mmio_write_32(MMC0_DBADDR, MMC_DESC_BASE);
+
+	//NOTICE("[0]:0x%x, status:%x\n", mmio_read_32(0), mmio_read_32(MMC0_STATUS));
+	/* send read command */
+	ret = mmc0_send_cmd(18, src_blk_start, buf);
+	if (ret) {
+		NOTICE("failed to send CMD18\n");
+		mmio_write_32(MMC0_RINTSTS, ~0);
+		return -EFAULT;
+	}
+
+	while (1) {
+		data = mmio_read_32(MMC0_RINTSTS);
+		if (data & (MMC_INT_DCRC | MMC_INT_DRT | MMC_INT_SBE |
+		    MMC_INT_EBE)) {
+			NOTICE("unwanted interrupts:0x%x\n", data);
+			return -EINVAL;
+		}
+		if (data != ret) {
+			NOTICE("#%s, data:%x\n", __func__, data);
+			ret = data;
+		}
+		if (data & MMC_INT_DTO)
+			break;
+		data = mmio_read_32(MMC0_DSCADDR);
+		NOTICE("dscaddr:0x%x\n", data);
+		data = mmio_read_32(MMC0_BUFADDR);
+		NOTICE("bufaddr:0x%x\n", data);
+	}
+
+	mmio_write_32(MMC0_RINTSTS, ~0);
+	for (i = 0; i < 0x1000; i += 4)
+		NOTICE("[0x%x]:0x%x  ", i, mmio_read_32(MMC_DATA_BASE + i));
+	//NOTICE("[0]:0x%x, status:%x\n", mmio_read_32(0), mmio_read_32(MMC0_STATUS));
+
+	return 0;
+}
 
 void init_mmc(void)
 {
@@ -485,6 +597,7 @@ void init_mmc(void)
 	enable_mmc0();
 
 	ret = enum_mmc0_card();
+	NOTICE("#%s, %d, ret:%d\n", __func__, __LINE__, ret);
 	if (ret)
 		return;
 

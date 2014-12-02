@@ -44,6 +44,7 @@
 #include <sp804_timer.h>
 #include <gpio.h>
 #include <pll.h>
+#include <partitions.h>
 #include <hi6220.h>
 #include <hi6553.h>
 #include "../../bl1/bl1_private.h"
@@ -187,13 +188,15 @@ static void init_freq(void)
 	data &= ~PMCTRL_ACPUSYSPLL_CLKDIV_CFG_MASK;
 	data |= 0x5;
 	mmio_write_32(PMCTRL_ACPUSYSPLLCFG, data);
-	mdelay(1000);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
+	//mdelay(1000);
 
 	do {
 		data = mmio_read_32(ACPU_SC_CPU_STAT);
 		data &= ACPU_SC_CPU_STAT_CLKDIV_VD_MASK;
 	} while (data != ACPU_SC_CPU_STAT_CLKDIV_VD_MASK);
-	mdelay(1000);
+	NOTICE("#%s, %d\n", __func__, __LINE__);
+	//mdelay(1000);
 
 	data = mmio_read_32(ACPU_SC_VD_CTRL);
 	data &= ~(ACPU_SC_VD_CTRL_TUNE_EN_DIF | ACPU_SC_VD_CTRL_TUNE_EN_INT);
@@ -984,6 +987,7 @@ void bl1_early_platform_setup(void)
 #endif
 	init_mmc();
 	query_clk_freq(CLK_MMC0_SRC);
+	get_partition();
 }
 
 /*******************************************************************************
