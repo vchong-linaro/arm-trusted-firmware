@@ -102,6 +102,5 @@ int get_partition(void)
 	}
 	/* load 256KB into address 0x0 */
 	ret = mmc0_read(0, 0x4400, 0);
-	NOTICE("#%s, %d, ret:%d\n", __func__, __LINE__, ret);
-	return 0;
+	return ret;
 }

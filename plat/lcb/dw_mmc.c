@@ -536,7 +536,6 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 		/* next descriptor address */
 		(desc + i)->des3 = MMC_DESC_BASE +
 				   (sizeof(struct idmac_desc) * (i + 1));
-		NOTICE("buffer:%x\n", (desc + i)->des2);
 	}
 	/* first descriptor */
 	desc->des0 |= IDMAC_DES0_FS;
@@ -551,7 +550,6 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 
 	mmio_write_32(MMC0_DBADDR, MMC_DESC_BASE);
 
-	//NOTICE("[0]:0x%x, status:%x\n", mmio_read_32(0), mmio_read_32(MMC0_STATUS));
 	/* send read command */
 	ret = mmc0_send_cmd(18, src_blk_start, buf);
 	if (ret) {
@@ -567,22 +565,11 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 			NOTICE("unwanted interrupts:0x%x\n", data);
 			return -EINVAL;
 		}
-		if (data != ret) {
-			NOTICE("#%s, data:%x\n", __func__, data);
-			ret = data;
-		}
 		if (data & MMC_INT_DTO)
 			break;
-		data = mmio_read_32(MMC0_DSCADDR);
-		NOTICE("dscaddr:0x%x\n", data);
-		data = mmio_read_32(MMC0_BUFADDR);
-		NOTICE("bufaddr:0x%x\n", data);
 	}
 
 	mmio_write_32(MMC0_RINTSTS, ~0);
-	for (i = 0; i < 0x1000; i += 4)
-		NOTICE("[0x%x]:0x%x  ", i, mmio_read_32(MMC_DATA_BASE + i));
-	//NOTICE("[0]:0x%x, status:%x\n", mmio_read_32(0), mmio_read_32(MMC0_STATUS));
 
 	return 0;
 }
