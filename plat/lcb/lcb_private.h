@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2014, ARM Limited and Contributors. All rights reserved.
- * Copyright (c) 2014, Hisilicon Ltd.
- * Copyright (c) 2014, Linaro Ltd.
+ * Copyright (c) 2014, Linaro Ltd. All rights reserved.
+ * Copyright (c) 2014, Hisilicon Ltd. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,43 +29,35 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LCB_DEF_H__
-#define __LCB_DEF_H__
+#ifndef __LCB_PRIVATE_H__
+#define __LCB_PRIVATE_H__
 
-#define DEVICE_BASE			0xf4000000
-#define DEVICE_SIZE			0x05800000
-
-/* The size of DDR RAM is 1GB. */
-#define DRAM_BASE			0x00000000
-#define DRAM_SIZE			0x40000000
-
-/*
- * DRAM at 0x0000_0000 is divided in two regions:
- *   - Secure DRAM (default is the top 16MB except for the last 2MB, which are
- *     used by the SCP for DDR retraining)
- *   - Non-Secure DRAM (remaining DRAM starting at DRAM_BASE)
- */
-#define DRAM_SEC_SIZE			0x01000000
-#define DRAM_SEC_BASE			(DRAM_BASE + DRAM_SIZE - DRAM_SEC_SIZE)
-
-#define DRAM_NS_BASE			DRAM_BASE
-#define DRAM_NS_SIZE			(DRAM_SIZE - DRAM_SEC_SIZE)
+#include <bl_common.h>
+#include <platform_def.h>
+#include <stdint.h>
 
 /*******************************************************************************
- * GIC-400 & interrupt handling related constants
+ * Function and variable prototypes
  ******************************************************************************/
-#define GICD_BASE			0xF6801000
-#define GICC_BASE			0xF6802000
-#define GICH_BASE			0xF6803000
-#define GICV_BASE			0xF6804000
+void bl1_plat_arch_setup(void);
+void configure_mmu_el1(unsigned long total_base,
+		       unsigned long total_size,
+		       unsigned long ro_start,
+		       unsigned long ro_limit,
+		       unsigned long coh_start,
+		       unsigned long coh_limit);
+void configure_mmu_el3(unsigned long total_base,
+		       unsigned long total_size,
+		       unsigned long ro_start,
+		       unsigned long ro_limit,
+		       unsigned long coh_start,
+		       unsigned long coh_limit);
 
-/*******************************************************************************
- * PL011 related constants
- ******************************************************************************/
-#define PL011_UART0_BASE		0xF8015000
+/* Declarations for plat_io_storage.c */
+void io_setup(void);
+int plat_get_image_source(const char *image_name,
+			  uintptr_t *dev_handle,
+			  uintptr_t *image_spec);
 
-#define PL011_BAUDRATE			115200
+#endif /* __LCB_PRIVATE_H__ */
 
-#define PL011_UART0_CLK_IN_HZ		19200000
-
-#endif /* __LCB_DEF_H__ */
