@@ -49,8 +49,26 @@
 #include <hi6553.h>
 #include "../../bl1/bl1_private.h"
 #include "lcb_def.h"
+#include "lcb_private.h"
 
 #define DDR
+
+/*******************************************************************************
+ * Declarations of linker defined symbols which will help us find the layout
+ * of trusted RAM
+ ******************************************************************************/
+extern unsigned long __COHERENT_RAM_START__;
+extern unsigned long __COHERENT_RAM_END__;
+
+/*
+ * The next 2 constants identify the extents of the coherent memory region.
+ * These addresses are used by the MMU setup code and therefore they must be
+ * page-aligned.  It is the responsibility of the linker script to ensure that
+ * __COHERENT_RAM_START__ and __COHERENT_RAM_END__ linker symbols refer to
+ * page-aligned addresses.
+ */
+#define BL1_COHERENT_RAM_BASE (unsigned long)(&__COHERENT_RAM_START__)
+#define BL1_COHERENT_RAM_LIMIT (unsigned long)(&__COHERENT_RAM_END__)
 
 /* Data structure which holds the extents of the trusted RAM for BL1 */
 static meminfo_t bl1_tzram_layout;
@@ -1028,10 +1046,52 @@ static void reset_mmc0_clk(void)
  ******************************************************************************/
 void bl1_early_platform_setup(void)
 {
-	//const size_t bl1_size = BL1_RAM_LIMIT - BL1_RAM_BASE;
+	const size_t bl1_size = BL1_RAM_LIMIT - BL1_RAM_BASE;
 
 	/* Initialize the console to provide early debug support */
 	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
+
+	/* Allow BL1 to see the whole Trusted RAM */
+	bl1_tzram_layout.total_base = TZRAM_BASE;
+	bl1_tzram_layout.total_size = TZRAM_SIZE;
+
+	/* Calculate how much RAM BL1 is using and how much remains free */
+	bl1_tzram_layout.free_base = TZRAM_BASE;
+	bl1_tzram_layout.free_size = TZRAM_SIZE;
+	reserve_mem(&bl1_tzram_layout.free_base,
+		    &bl1_tzram_layout.free_size,
+		    BL1_RAM_BASE,
+		    bl1_size);
+
+	INFO("BL1: 0x%lx - 0x%lx [size = %u]\n", BL1_RAM_BASE, BL1_RAM_LIMIT,
+	     bl1_size);
+}
+
+/*******************************************************************************
+ * Perform the very early platform specific architecture setup here. At the
+ * moment this only does basic initialization. Later architectural setup
+ * (bl1_arch_setup()) does not do anything platform specific.
+ ******************************************************************************/
+void bl1_plat_arch_setup(void)
+{
+#if 0
+	NOTICE("#%s, %d, bl1 base:0x%x, bl1 size:0x%x\n", __func__, __LINE__,
+		bl1_tzram_layout.total_base, bl1_tzram_layout.total_size);
+	configure_mmu_el3(bl1_tzram_layout.total_base,
+			  bl1_tzram_layout.total_size,
+			  TZROM_BASE,
+			  TZROM_BASE + TZROM_SIZE,
+			  BL1_COHERENT_RAM_BASE,
+			  BL1_COHERENT_RAM_LIMIT);
+#endif
+}
+
+/*******************************************************************************
+ * Function which will perform any remaining platform-specific setup that can
+ * occur after the MMU and data cache have been enabled.
+ ******************************************************************************/
+void bl1_platform_setup(void)
+{
 	init_timer();
 	init_pmussi();
 	init_hi6553();
@@ -1049,23 +1109,6 @@ void bl1_early_platform_setup(void)
 	init_mmc();
 	query_clk_freq(CLK_MMC0_SRC);
 	get_partition();
-}
-
-/*******************************************************************************
- * Perform the very early platform specific architecture setup here. At the
- * moment this only does basic initialization. Later architectural setup
- * (bl1_arch_setup()) does not do anything platform specific.
- ******************************************************************************/
-void bl1_plat_arch_setup(void)
-{
-}
-
-/*******************************************************************************
- * Function which will perform any remaining platform-specific setup that can
- * occur after the MMU and data cache have been enabled.
- ******************************************************************************/
-void bl1_platform_setup(void)
-{
 }
 
 /*******************************************************************************

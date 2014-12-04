@@ -62,6 +62,7 @@ BL1_SOURCES		+=	drivers/arm/cci400/cci400.c		\
 				plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/aarch64/plat_helpers.S		\
 				plat/lcb/aarch64/bl1_plat_helpers.S	\
+				plat/lcb/aarch64/lcb_common.c		\
 				plat/lcb/bl1_plat_setup.c		\
 				plat/lcb/pll.c				\
 				plat/lcb/sp804_timer.c			\
