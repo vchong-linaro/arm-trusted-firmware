@@ -71,3 +71,7 @@ BL1_SOURCES		+=	drivers/arm/cci400/cci400.c		\
 				plat/lcb/partitions.c			\
 				plat/lcb/drivers/pmic/hi6553.c		\
 				plat/lcb/drivers/gpio/gpio.c
+
+BL2_SOURCES		+=	plat/common/aarch64/platform_up_stack.S	\
+				plat/lcb/aarch64/lcb_common.c		\
+				plat/lcb/bl2_plat_setup.c

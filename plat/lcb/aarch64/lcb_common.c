@@ -60,6 +60,13 @@ static const mmap_region_t lcb_mmap[] = {
 	{0}
 };
 #endif
+#if IMAGE_BL2
+static const mmap_region_t lcb_mmap[] = {
+	MAP_DEVICE,
+	MAP_NS_DRAM,
+	{0}
+};
+#endif
 
 /*******************************************************************************
  * Macro generating the code for the function setting up the pagetables as per
@@ -91,3 +98,8 @@ static const mmap_region_t lcb_mmap[] = {
 /* Define EL1 and EL3 variants of the function initialising the MMU */
 DEFINE_CONFIGURE_MMU_EL(1)
 DEFINE_CONFIGURE_MMU_EL(3)
+
+unsigned long plat_get_ns_image_entrypoint(void)
+{
+	return 0;
+}

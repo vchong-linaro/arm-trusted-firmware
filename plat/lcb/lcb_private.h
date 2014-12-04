@@ -37,6 +37,21 @@
 #include <stdint.h>
 
 /*******************************************************************************
+ * This structure represents the superset of information that is passed to
+ * BL3-1 e.g. while passing control to it from BL2 which is bl31_params
+ * and other platform specific params
+ ******************************************************************************/
+typedef struct bl2_to_bl31_params_mem {
+	struct bl31_params bl31_params;
+	struct image_info bl31_image_info;
+	struct image_info bl32_image_info;
+	struct image_info bl33_image_info;
+	struct entry_point_info bl33_ep_info;
+	struct entry_point_info bl32_ep_info;
+	struct entry_point_info bl31_ep_info;
+} bl2_to_bl31_params_mem_t;
+
+/*******************************************************************************
  * Function and variable prototypes
  ******************************************************************************/
 void bl1_plat_arch_setup(void);
@@ -52,6 +67,7 @@ void configure_mmu_el3(unsigned long total_base,
 		       unsigned long ro_limit,
 		       unsigned long coh_start,
 		       unsigned long coh_limit);
+unsigned long plat_get_ns_image_entrypoint(void);
 
 /* Declarations for plat_io_storage.c */
 void io_setup(void);
