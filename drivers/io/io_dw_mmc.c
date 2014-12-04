@@ -196,7 +196,7 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 	/* advance the file 'cursor' for incremental reads */
 	fp->file_pos += length;
 
-	for (i = 0; i < 0x400; i += 4) {
+	for (i = 0x1b0; i < 0x1d0; i += 4) {
 		NOTICE("###[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
 	}
 
