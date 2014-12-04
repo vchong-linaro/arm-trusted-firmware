@@ -40,6 +40,7 @@
 #include <platform_def.h>
 #include <stdint.h>
 #include <string.h>
+#include <mmio.h>
 
 /* As we need to be able to keep state for seek, only one file can be open
  * at a time. Make this a structure and point to the entity->info. When we
@@ -141,6 +142,8 @@ static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
 		WARN("A DW MMC device is already active. Close first.\n");
 		result = IO_RESOURCES_EXHAUSTED;
 	}
+		NOTICE("#%s, %d, current_file:\n", __func__, __LINE__);
+		NOTICE("#%s, %d, base:0x%x, result:%d\n", __func__, __LINE__, current_file.base, result);
 
 	return result;
 }
@@ -160,6 +163,7 @@ static int dw_mmc_block_seek(io_entity_t *entity, int mode, ssize_t offset)
 	} else {
 		result = IO_FAIL;
 	}
+	NOTICE("#%s, %d, offset:0x%x, result:%d\n", __func__, __LINE__, offset, result);
 
 	return result;
 }
@@ -170,18 +174,31 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 			     size_t length, size_t *length_read)
 {
 	file_state_t *fp;
+	int result, i;
 
+	NOTICE("#%s, %d\n", __func__, __LINE__);
 	assert(entity != NULL);
 	assert(buffer != (uintptr_t)NULL);
 	assert(length_read != NULL);
 
 	fp = (file_state_t *)entity->info;
 
-	memcpy((void *)buffer, (void *)(fp->base + fp->file_pos), length);
+	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
+	result = mmc0_read(fp->base + fp->file_pos, length, 0);
+	if (result) {
+		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
+		return result;
+	}
+	memcpy((void *)buffer, (void *)MMC_DATA_BASE, length);
+	//memcpy((void *)buffer, (void *)(fp->base + fp->file_pos), length);
 
 	*length_read = length;
 	/* advance the file 'cursor' for incremental reads */
 	fp->file_pos += length;
+
+	for (i = 0; i < 0x400; i += 4) {
+		NOTICE("###[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
+	}
 
 	return IO_SUCCESS;
 }

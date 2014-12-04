@@ -49,6 +49,7 @@ $(eval $(call add_define,PLAT_TSP_LOCATION_ID))
 PLAT_INCLUDES		:=	-Iplat/lcb/include/
 
 PLAT_BL_COMMON_SOURCES	:=	drivers/arm/pl011/pl011_console.S	\
+				drivers/io/io_dw_mmc.c			\
 				drivers/io/io_fip.c			\
 				drivers/io/io_memmap.c			\
 				drivers/io/io_storage.c			\

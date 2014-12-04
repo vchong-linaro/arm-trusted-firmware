@@ -86,6 +86,9 @@
  * The first part is TZROM, and the second part is TZRAM. The name isn't good
  * enough. We need to update it later.
  ******************************************************************************/
+#define MMC_BASE			0x00000000
+#define MMC_SIZE			0x80000000
+
 #define BL1_RAM_BYPASS_OFFSET		0x00002000
 #define TZROM_BASE			(0xF9800000 + BL1_RAM_BYPASS_OFFSET)
 #define TZROM_SIZE			0x00008000
