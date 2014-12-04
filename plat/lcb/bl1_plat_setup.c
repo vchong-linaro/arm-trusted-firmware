@@ -963,6 +963,65 @@ static void init_ddrc_qos(void)
 }
 #endif
 
+static void init_mmc_pll(void)
+{
+	unsigned int data;
+
+	data = hi6553_read_8(LDO19_REG_ADJ);
+	data |= 0x7;		/* 3.0V */
+	hi6553_write_8(LDO19_REG_ADJ, data);
+	/* select syspll as mmc clock */
+	mmio_write_32(PERI_SC_CLK_SEL0, 1 << 5 | 1 << 21);
+	/* enable mmc0 clock */
+	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
+	} while (!(data & PERI_CLK_MMC0));
+	/* enable source clock to mmc0 */
+	data = mmio_read_32(PERI_SC_PERIPH_CLKEN12);
+	data |= 1 << 1;
+	mmio_write_32(PERI_SC_PERIPH_CLKEN12, data);
+	/* scale mmc frequency to 100MHz (divider as 12 since PLL is 1.2GHz */
+	mmio_write_32(PERI_SC_CLKCFG8BIT1, (1 << 7) | 0xb);
+}
+
+static void reset_mmc0_clk(void)
+{
+	unsigned int data;
+
+	/* disable mmc0 bus clock */
+	mmio_write_32(PERI_SC_PERIPH_CLKDIS0, PERI_CLK_MMC0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
+	} while (data & PERI_CLK_MMC0);
+	/* enable mmc0 bus clock */
+	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
+	} while (!(data & PERI_CLK_MMC0));
+	/* reset mmc0 clock domain */
+	mmio_write_32(PERI_SC_PERIPH_RSTEN0, PERI_CLK_MMC0);
+
+	/* bypass mmc0 clock phase */
+	data = mmio_read_32(PERI_SC_PERIPH_CTRL2);
+	data |= 3;
+	mmio_write_32(PERI_SC_PERIPH_CTRL2, data);
+
+	/* disable low power */
+	data = mmio_read_32(PERI_SC_PERIPH_CTRL13);
+	data |= 1 << 3;
+	mmio_write_32(PERI_SC_PERIPH_CTRL13, data);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
+	} while (!(data & (1 << 0)));
+
+	/* unreset mmc0 clock domain */
+	mmio_write_32(PERI_SC_PERIPH_RSTDIS0, 1 << 0);
+	do {
+		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
+	} while (data & (1 << 0));
+}
+
 
 /*******************************************************************************
  * Perform any BL1 specific platform actions.
@@ -985,6 +1044,8 @@ void bl1_early_platform_setup(void)
 	mmio_write_32(0x0, 0xa5a55a5a);
 	NOTICE("ddr test value:0x%x\n", mmio_read_32(0x0));
 #endif
+	init_mmc_pll();
+	reset_mmc0_clk();
 	init_mmc();
 	query_clk_freq(CLK_MMC0_SRC);
 	get_partition();

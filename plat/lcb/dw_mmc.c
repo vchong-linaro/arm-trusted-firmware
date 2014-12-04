@@ -61,65 +61,6 @@ struct idmac_desc {
 	unsigned int		des3;
 };
 
-static void init_mmc_pll(void)
-{
-	unsigned int data;
-
-	data = hi6553_read_8(LDO19_REG_ADJ);
-	data |= 0x7;		/* 3.0V */
-	hi6553_write_8(LDO19_REG_ADJ, data);
-	/* select syspll as mmc clock */
-	mmio_write_32(PERI_SC_CLK_SEL0, 1 << 5 | 1 << 21);
-	/* enable mmc0 clock */
-	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
-	do {
-		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
-	} while (!(data & PERI_CLK_MMC0));
-	/* enable source clock to mmc0 */
-	data = mmio_read_32(PERI_SC_PERIPH_CLKEN12);
-	data |= 1 << 1;
-	mmio_write_32(PERI_SC_PERIPH_CLKEN12, data);
-	/* scale mmc frequency to 100MHz (divider as 12 since PLL is 1.2GHz */
-	mmio_write_32(PERI_SC_CLKCFG8BIT1, (1 << 7) | 0xb);
-}
-
-static void reset_mmc0_clk(void)
-{
-	unsigned int data;
-
-	/* disable mmc0 bus clock */
-	mmio_write_32(PERI_SC_PERIPH_CLKDIS0, PERI_CLK_MMC0);
-	do {
-		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
-	} while (data & PERI_CLK_MMC0);
-	/* enable mmc0 bus clock */
-	mmio_write_32(PERI_SC_PERIPH_CLKEN0, PERI_CLK_MMC0);
-	do {
-		data = mmio_read_32(PERI_SC_PERIPH_CLKSTAT0);
-	} while (!(data & PERI_CLK_MMC0));
-	/* reset mmc0 clock domain */
-	mmio_write_32(PERI_SC_PERIPH_RSTEN0, PERI_CLK_MMC0);
-
-	/* bypass mmc0 clock phase */
-	data = mmio_read_32(PERI_SC_PERIPH_CTRL2);
-	data |= 3;
-	mmio_write_32(PERI_SC_PERIPH_CTRL2, data);
-
-	/* disable low power */
-	data = mmio_read_32(PERI_SC_PERIPH_CTRL13);
-	data |= 1 << 3;
-	mmio_write_32(PERI_SC_PERIPH_CTRL13, data);
-	do {
-		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
-	} while (!(data & (1 << 0)));
-
-	/* unreset mmc0 clock domain */
-	mmio_write_32(PERI_SC_PERIPH_RSTDIS0, 1 << 0);
-	do {
-		data = mmio_read_32(PERI_SC_PERIPH_RSTSTAT0);
-	} while (data & (1 << 0));
-}
-
 static int update_mmc0_clock(void)
 {
 	unsigned int data;
@@ -571,6 +512,9 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 
 	mmio_write_32(MMC0_RINTSTS, ~0);
 
+	for (i = 0; i < 0x400; i += 4)
+		NOTICE("[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
+
 	return 0;
 }
 
@@ -579,8 +523,6 @@ void init_mmc(void)
 	unsigned int buf[4];
 	int ret;
 
-	init_mmc_pll();
-	reset_mmc0_clk();
 	enable_mmc0();
 
 	ret = enum_mmc0_card();
