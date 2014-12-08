@@ -528,6 +528,82 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 	return 0;
 }
 
+int mmc0_write(unsigned int src_start, unsigned int src_size,
+		unsigned int dst_start)
+{
+	unsigned int src_blk_start = src_start / MMC_BLOCK_SIZE;
+	unsigned int src_blk_cnt, offset, bytes, desc_num, buf[4], data;
+	struct idmac_desc *desc = NULL;
+	int i, ret, last_idx;
+
+	offset = src_start % MMC_BLOCK_SIZE;
+	if (offset) {
+		NOTICE("The source address isn't aligned with MMC block!\n");
+		return -EFAULT;
+	}
+	src_blk_cnt = (src_size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
+	bytes = src_blk_cnt * MMC_BLOCK_SIZE;
+
+	mmio_write_32(MMC0_BYTCNT, bytes);
+	mmio_write_32(MMC0_RINTSTS, ~0);
+
+	desc_num = (bytes + MMC_DMA_MAX_BUFFER_SIZE - 1) /
+		   MMC_DMA_MAX_BUFFER_SIZE;
+
+	desc = (struct idmac_desc *)MMC_DESC_BASE;
+	for (i = 0; i < desc_num; i++) {
+		(desc + i)->des0 = IDMAC_DES0_OWN | IDMAC_DES0_CH |
+				   IDMAC_DES0_DIC;
+		(desc + i)->des1 = IDMAC_DES1_BS1(MMC_DMA_MAX_BUFFER_SIZE);
+		/* buffer address */
+		(desc + i)->des2 = MMC_DATA_BASE + MMC_DMA_MAX_BUFFER_SIZE * i;
+		/* next descriptor address */
+		(desc + i)->des3 = MMC_DESC_BASE +
+				   (sizeof(struct idmac_desc) * (i + 1));
+	}
+	/* first descriptor */
+	desc->des0 |= IDMAC_DES0_FS;
+	/* last descriptor */
+	last_idx = desc_num - 1;
+	(desc + last_idx)->des0 |= IDMAC_DES0_LD;
+	(desc + last_idx)->des0 &= ~(IDMAC_DES0_DIC | IDMAC_DES0_CH);
+	(desc + last_idx)->des1 = IDMAC_DES1_BS1(bytes - (last_idx *
+				  MMC_DMA_MAX_BUFFER_SIZE));
+	/* set next descriptor address as 0 */
+	(desc + last_idx)->des3 = 0;
+
+	mmio_write_32(MMC0_DBADDR, MMC_DESC_BASE);
+
+	/* send write command */
+	ret = mmc0_send_cmd(25, src_blk_start, buf);
+	if (ret) {
+		NOTICE("failed to send CMD25\n");
+		mmio_write_32(MMC0_RINTSTS, ~0);
+		return -EFAULT;
+	}
+	while (1) {
+		data = mmio_read_32(MMC0_RINTSTS);
+		if (data & (MMC_INT_DCRC | MMC_INT_DRT | MMC_INT_SBE |
+		    MMC_INT_EBE)) {
+			NOTICE("unwanted interrupts:0x%x\n", data);
+			return -EINVAL;
+		}
+		if (data & MMC_INT_DTO)
+			break;
+	}
+	mmio_write_32(MMC0_RINTSTS, ~0);
+
+	if (src_blk_cnt > 1) {
+		ret = mmc0_send_cmd(12, 0, buf);
+		if (ret) {
+			NOTICE("failed to send STBY command\n");
+			return ret;
+		}
+		mmio_write_32(MMC0_RINTSTS, ~0);
+	}
+	return 0;
+}
+
 void init_mmc(void)
 {
 	unsigned int buf[4];
