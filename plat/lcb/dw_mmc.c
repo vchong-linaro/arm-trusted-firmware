@@ -418,6 +418,7 @@ static int enable_mmc0(void)
 	mmio_write_32(MMC0_IDINTEN, ~0);
 	mmio_write_32(MMC0_IDSTS, ~0);
 
+	mmio_write_32(MMC0_BLKSIZ, MMC_BLOCK_SIZE);
 	mmio_write_32(MMC0_BMOD, MMC_IDMAC_SWRESET);
 	do {
 		data = mmio_read_32(MMC0_BMOD);
@@ -458,7 +459,6 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 	src_blk_cnt = (src_size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
 	bytes = src_blk_cnt * MMC_BLOCK_SIZE;
 
-	mmio_write_32(MMC0_BLKSIZ, MMC_BLOCK_SIZE);
 	mmio_write_32(MMC0_BYTCNT, bytes);
 
 	mmio_write_32(MMC0_RINTSTS, ~0);
