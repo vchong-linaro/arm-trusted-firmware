@@ -512,6 +512,14 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 
 	mmio_write_32(MMC0_RINTSTS, ~0);
 
+	if (src_blk_cnt > 1) {
+		ret = mmc0_send_cmd(12, 0, buf);
+		if (ret) {
+			NOTICE("failed to send Stop Transmission command\n");
+			return ret;
+		}
+		mmio_write_32(MMC0_RINTSTS, ~0);
+	}
 #if 0
 	for (i = 0; i < 0x400; i += 4)
 		NOTICE("[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
