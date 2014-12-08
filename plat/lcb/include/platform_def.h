@@ -51,6 +51,10 @@
 
 #define FIRMWARE_WELCOME_STR		"Booting Trusted Firmware\n"
 
+#define BL1_MEM_NAME			"bl1_mem"
+
+#define BL1_IMAGE_NAME			"bl1.bin"
+
 /* Trusted Boot Firmware BL2 */
 #define BL2_IMAGE_NAME			"bl2.bin"
 
@@ -83,17 +87,17 @@
 
 /*******************************************************************************
  * BL1 is stored in XG2RAM0_HIRQ that is 784KB large. Could we use 8MB size?
- * The first part is TZROM, and the second part is TZRAM. The name isn't good
+ * The first part is BL1_RAM, and the second part is TZRAM. The name isn't good
  * enough. We need to update it later.
  ******************************************************************************/
 #define MMC_BASE			0x00000000
 #define MMC_SIZE			0x80000000
+#define MMC_BL1_BASE			MMC_BASE
+#define MMC_BL1_SIZE			0x00200000
+#define MMC_BL2_BASE			(MMC_BASE + MMC_BL1_SIZE)
 
-#define BL1_RAM_BYPASS_OFFSET		0x00002000
-#define TZROM_BASE			(0xF9800000 + BL1_RAM_BYPASS_OFFSET)
-#define TZROM_SIZE			0x00008000
-#define TZRAM_BASE			(TZROM_BASE + TZROM_SIZE)
-#define TZRAM_SIZE			0x00008000
+#define ONCHIPROM_PARAM_BASE		(XG2RAM0_BASE + 0x1000)
+#define BL1_XG2RAM0_OFFSET		0x2000
 
 #define DDR_BASE			0x00000000
 
@@ -107,17 +111,19 @@
  * BL1 RW data is relocated from ROM to RAM at runtime so we need 2 base
  * addresses.
  ******************************************************************************/
-#define BL1_RO_BASE			TZROM_BASE
-#define BL1_RO_LIMIT			(TZROM_BASE + TZROM_SIZE)
-#define BL1_RW_BASE			TZRAM_BASE
-#define BL1_RW_LIMIT			(TZRAM_BASE + TZRAM_SIZE + MMC_DESC_SIZE)
+#define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
+#define BL1_RO_SIZE			0x00008000
+#define BL1_RO_LIMIT			(BL1_RO_BASE + BL1_RO_SIZE)
+#define BL1_RW_BASE			(BL1_RO_BASE + BL1_RO_SIZE)
+#define BL1_RW_SIZE			0x00008000
+#define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE + MMC_DESC_SIZE)
 
 /*******************************************************************************
  * BL2 specific defines.
  ******************************************************************************/
 /* Set it in DDR first. If necessary, we can set them into SRAM again. */
-#define BL2_BASE			(DDR_BASE)
-#define BL2_LIMIT			(DDR_BASE + 0x40000)
+#define BL2_BASE			(DDR_BASE + 0x07000000)
+#define BL2_LIMIT			(BL2_BASE + 0x40000)
 
 /*******************************************************************************
  * Load address of BL3-0 in the Juno port

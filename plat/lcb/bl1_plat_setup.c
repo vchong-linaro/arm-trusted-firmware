@@ -1040,7 +1040,6 @@ static void reset_mmc0_clk(void)
 	} while (data & (1 << 0));
 }
 
-
 /*******************************************************************************
  * Perform any BL1 specific platform actions.
  ******************************************************************************/
@@ -1052,12 +1051,12 @@ void bl1_early_platform_setup(void)
 	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
 
 	/* Allow BL1 to see the whole Trusted RAM */
-	bl1_tzram_layout.total_base = TZRAM_BASE;
-	bl1_tzram_layout.total_size = TZRAM_SIZE;
+	bl1_tzram_layout.total_base = BL1_RW_BASE;
+	bl1_tzram_layout.total_size = BL1_RW_SIZE;
 
 	/* Calculate how much RAM BL1 is using and how much remains free */
-	bl1_tzram_layout.free_base = TZRAM_BASE;
-	bl1_tzram_layout.free_size = TZRAM_SIZE;
+	bl1_tzram_layout.free_base = BL1_RW_BASE;
+	bl1_tzram_layout.free_size = BL1_RW_SIZE;
 	reserve_mem(&bl1_tzram_layout.free_base,
 		    &bl1_tzram_layout.free_size,
 		    BL1_RAM_BASE,
@@ -1074,16 +1073,14 @@ void bl1_early_platform_setup(void)
  ******************************************************************************/
 void bl1_plat_arch_setup(void)
 {
-#if 0
 	NOTICE("#%s, %d, bl1 base:0x%x, bl1 size:0x%x\n", __func__, __LINE__,
 		bl1_tzram_layout.total_base, bl1_tzram_layout.total_size);
 	configure_mmu_el3(bl1_tzram_layout.total_base,
 			  bl1_tzram_layout.total_size,
-			  TZROM_BASE,
-			  TZROM_BASE + TZROM_SIZE,
+			  BL1_RO_BASE,
+			  BL1_RO_BASE + BL1_RO_SIZE,
 			  BL1_COHERENT_RAM_BASE,
 			  BL1_COHERENT_RAM_LIMIT);
-#endif
 }
 
 /*******************************************************************************

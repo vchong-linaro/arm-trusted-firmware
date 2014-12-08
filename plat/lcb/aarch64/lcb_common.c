@@ -46,7 +46,11 @@
 
 #define MAP_NS_DRAM	MAP_REGION_FLAT(DRAM_NS_BASE,			\
 					DRAM_NS_SIZE,			\
-					MT_MEMORY | MT_RW | MT_NS)
+					MT_DEVICE | MT_RW | MT_NS)
+
+#define MAP_ROM_PARAM	MAP_REGION_FLAT(XG2RAM0_BASE,			\
+					0x2000,				\
+					MT_DEVICE | MT_RW | MT_NS)
 
 /*
  * Table of regions for different BL stages to map using the MMU.
@@ -57,6 +61,7 @@
 static const mmap_region_t lcb_mmap[] = {
 	MAP_DEVICE,
 	MAP_NS_DRAM,
+	MAP_ROM_PARAM,
 	{0}
 };
 #endif

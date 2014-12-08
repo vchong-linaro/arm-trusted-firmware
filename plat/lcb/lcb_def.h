@@ -40,6 +40,8 @@
 #define DRAM_BASE			0x00000000
 #define DRAM_SIZE			0x40000000
 
+#define XG2RAM0_BASE			0xF9800000
+
 /*
  * DRAM at 0x0000_0000 is divided in two regions:
  *   - Secure DRAM (default is the top 16MB except for the last 2MB, which are
@@ -50,7 +52,8 @@
 #define DRAM_SEC_BASE			(DRAM_BASE + DRAM_SIZE - DRAM_SEC_SIZE)
 
 #define DRAM_NS_BASE			DRAM_BASE
-#define DRAM_NS_SIZE			(DRAM_SIZE - DRAM_SEC_SIZE)
+#define DRAM_NS_SIZE			0x10000000
+//#define DRAM_NS_SIZE			(DRAM_SIZE - DRAM_SEC_SIZE)
 
 /*******************************************************************************
  * GIC-400 & interrupt handling related constants
