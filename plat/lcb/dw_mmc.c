@@ -206,7 +206,7 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 	do {
 		data = mmio_read_32(MMC0_RINTSTS);
 		if (data & err_mask)
-			return data;
+			return -EIO;
 	} while (!(data & MMC_INT_CMD_DONE));
 
 	buf[0] = mmio_read_32(MMC0_RESP0);
