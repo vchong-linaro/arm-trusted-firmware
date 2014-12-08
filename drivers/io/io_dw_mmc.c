@@ -55,7 +55,13 @@ typedef struct {
 	size_t		file_pos;
 } file_state_t;
 
+struct dw_mmc_info {
+	int		init;
+};
+
 static file_state_t current_file = {0};
+
+static struct dw_mmc_info dw_mmc_info = {0};
 
 static int dw_mmc_dev_open(const uintptr_t dev_spec, io_dev_info_t **dev_info);
 static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
@@ -94,7 +100,7 @@ static const io_dev_funcs_t dw_mmc_dev_funcs = {
 /* No state associated with this device so structure can be const */
 static const io_dev_info_t dw_mmc_dev_info = {
 	.funcs = &dw_mmc_dev_funcs,
-	.info = (uintptr_t)NULL
+	.info = (uintptr_t)&dw_mmc_info,
 };
 
 /* Open a connection to the DW MMC device */
@@ -176,7 +182,6 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 	file_state_t *fp;
 	int result, i;
 
-	NOTICE("#%s, %d\n", __func__, __LINE__);
 	assert(entity != NULL);
 	assert(buffer != (uintptr_t)NULL);
 	assert(length_read != NULL);
@@ -218,8 +223,12 @@ static int dw_mmc_block_close(io_entity_t *entity)
 
 static int dw_mmc_dev_init(io_dev_info_t *dev_info, const uintptr_t init_params)
 {
-	NOTICE("#%s, %d\n", __func__, __LINE__);
-	init_mmc();
+	struct dw_mmc_info *info = (struct dw_mmc_info *)(dev_info->info);
+
+	if (!info->init) {
+		init_mmc();
+		info->init = 1;
+	}
 	return IO_SUCCESS;
 }
 
