@@ -1040,6 +1040,19 @@ static void reset_mmc0_clk(void)
 	} while (data & (1 << 0));
 }
 
+/* Get the boot mode (normal boot/usb download/uart download) */
+int query_boot_mode(void)
+{
+	int boot_mode;
+
+	boot_mode = mmio_read_32(ONCHIPROM_PARAM_BASE);
+	if ((boot_mode < 0) || (boot_mode > 2)) {
+		NOTICE("Invalid boot mode is found:%d\n", boot_mode);
+		panic();
+	}
+	return boot_mode;
+}
+
 /*******************************************************************************
  * Perform any BL1 specific platform actions.
  ******************************************************************************/
@@ -1104,6 +1117,9 @@ void bl1_platform_setup(void)
 	init_mmc_pll();
 	reset_mmc0_clk();
 	io_setup();
+	if (query_boot_mode()) {
+		flush_image();
+	}
 	//init_mmc();
 	query_clk_freq(CLK_MMC0_SRC);
 	//get_partition();

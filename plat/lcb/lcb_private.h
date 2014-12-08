@@ -54,6 +54,7 @@ typedef struct bl2_to_bl31_params_mem {
 /*******************************************************************************
  * Function and variable prototypes
  ******************************************************************************/
+int query_boot_mode(void);
 void bl1_plat_arch_setup(void);
 void configure_mmu_el1(unsigned long total_base,
 		       unsigned long total_size,
@@ -74,6 +75,7 @@ void io_setup(void);
 int plat_get_image_source(const char *image_name,
 			  uintptr_t *dev_handle,
 			  uintptr_t *image_spec);
+int flush_image(void);
 
 #endif /* __LCB_PRIVATE_H__ */
 
