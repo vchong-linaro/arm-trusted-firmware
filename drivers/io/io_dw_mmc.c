@@ -150,8 +150,6 @@ static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
 		WARN("A DW MMC device is already active. Close first.\n");
 		result = IO_RESOURCES_EXHAUSTED;
 	}
-		NOTICE("#%s, %d, current_file:\n", __func__, __LINE__);
-		NOTICE("#%s, %d, base:0x%x, result:%d\n", __func__, __LINE__, current_file.base, result);
 
 	return result;
 }
@@ -171,7 +169,6 @@ static int dw_mmc_block_seek(io_entity_t *entity, int mode, ssize_t offset)
 	} else {
 		result = IO_FAIL;
 	}
-	NOTICE("#%s, %d, offset:0x%x, result:%d\n", __func__, __LINE__, offset, result);
 
 	return result;
 }
