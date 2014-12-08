@@ -69,6 +69,8 @@ static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
 static int dw_mmc_block_seek(io_entity_t *entity, int mode, ssize_t offset);
 static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 			     size_t length, size_t *length_read);
+static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
+			      size_t length, size_t *length_written);
 static int dw_mmc_block_close(io_entity_t *entity);
 static int dw_mmc_dev_init(io_dev_info_t *dev_info,
 			   const uintptr_t init_params);
@@ -90,7 +92,7 @@ static const io_dev_funcs_t dw_mmc_dev_funcs = {
 	.seek = dw_mmc_block_seek,
 	.size = NULL,
 	.read = dw_mmc_block_read,
-	.write = NULL,
+	.write = dw_mmc_block_write,
 	.close = dw_mmc_block_close,
 	.dev_init = dw_mmc_dev_init,
 	.dev_close = dw_mmc_dev_close,
@@ -189,7 +191,7 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 	fp = (file_state_t *)entity->info;
 
 	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
-	result = mmc0_read(fp->base + fp->file_pos, length, 0);
+	result = mmc0_read(fp->base + fp->file_pos, length, MMC_DATA_BASE);
 	if (result) {
 		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
@@ -201,10 +203,40 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 	/* advance the file 'cursor' for incremental reads */
 	fp->file_pos += length;
 
-	for (i = 0x1b0; i < 0x1d0; i += 4) {
+	for (i = 0x0; i < 0x10; i += 4) {
 		NOTICE("###[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
 	}
 
+	return IO_SUCCESS;
+}
+
+static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
+			      size_t length, size_t *length_written)
+{
+	file_state_t *fp;
+	int result, i;
+
+	assert(entity != NULL);
+	assert(buffer != (uintptr_t)NULL);
+	assert(length_read != NULL);
+
+	fp = (file_state_t *)entity->info;
+
+	memcpy((void *)MMC_DATA_BASE, (void *)buffer, length);
+	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
+	result = mmc0_write(fp->base + fp->file_pos, length, MMC_DATA_BASE);
+	if (result) {
+		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
+		return result;
+	}
+
+	*length_written = length;
+	/* advance the file 'cursor' for incremental reads */
+	fp->file_pos += length;
+
+	for (i = 0x0; i < 0x10; i += 4) {
+		NOTICE("###[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
+	}
 	return IO_SUCCESS;
 }
 
