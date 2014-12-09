@@ -125,13 +125,6 @@
 #define BL2_LIMIT			(BL2_BASE + BL1_RW_SIZE - 0x40000)
 
 /*******************************************************************************
- * Load address of BL3-0 in the Juno port
- * BL3-0 is loaded to the same place as BL3-1.  Once BL3-0 is transferred to the
- * SCP, it is discarded and BL3-1 is loaded over the top.
- ******************************************************************************/
-#define BL30_BASE			BL31_BASE
-
-/*******************************************************************************
  * BL3-1 specific defines.
  ******************************************************************************/
 #define BL31_BASE			(DDR_BASE + 0x40000)
@@ -158,5 +151,17 @@
 #endif
 
 #define MAX_MMAP_REGIONS		16
+
+/*******************************************************************************
+ * Declarations and constants to access the mailboxes safely. Each mailbox is
+ * aligned on the biggest cache line size in the platform. This is known only
+ * to the platform as it might have a combination of integrated and external
+ * caches. Such alignment ensures that two maiboxes do not sit on the same cache
+ * line at any cache level. They could belong to different cpus/clusters &
+ * get written while being protected by different locks causing corruption of
+ * a valid mailbox address.
+ ******************************************************************************/
+#define CACHE_WRITEBACK_SHIFT   6
+#define CACHE_WRITEBACK_GRANULE (1 << CACHE_WRITEBACK_SHIFT)
 
 #endif /* __PLATFORM_DEF_H__ */

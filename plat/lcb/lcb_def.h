@@ -73,4 +73,11 @@
 
 #define PL011_UART0_CLK_IN_HZ		19200000
 
+/*******************************************************************************
+ * CCI-400 related constants
+ ******************************************************************************/
+#define CCI400_BASE			0xF6E00000
+#define CCI400_SL_IFACE3_CLUSTER_IX	1
+#define CCI400_SL_IFACE4_CLUSTER_IX	0
+
 #endif /* __LCB_DEF_H__ */

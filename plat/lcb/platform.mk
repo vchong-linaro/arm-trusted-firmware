@@ -55,6 +55,7 @@ PLAT_BL_COMMON_SOURCES	:=	drivers/arm/pl011/pl011_console.S	\
 				drivers/io/io_storage.c			\
 				lib/aarch64/xlat_tables.c		\
 				plat/common/aarch64/plat_common.c	\
+				plat/common/plat_gic.c			\
 				plat/lcb/plat_io_storage.c
 
 BL1_SOURCES		+=	drivers/arm/cci400/cci400.c		\
@@ -75,3 +76,11 @@ BL1_SOURCES		+=	drivers/arm/cci400/cci400.c		\
 BL2_SOURCES		+=	plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/aarch64/lcb_common.c		\
 				plat/lcb/bl2_plat_setup.c
+
+BL31_SOURCES		+=	drivers/arm/gic/arm_gic.c		\
+				lib/cpus/aarch64/cortex_a53.S		\
+				plat/common/aarch64/platform_up_stack.S	\
+				plat/lcb/aarch64/lcb_common.c		\
+				plat/lcb/bl31_plat_setup.c		\
+				plat/lcb/plat_pm.c			\
+				plat/lcb/plat_topology.c
