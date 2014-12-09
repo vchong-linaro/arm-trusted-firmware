@@ -112,18 +112,17 @@
  * addresses.
  ******************************************************************************/
 #define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
-#define BL1_RO_SIZE			0x00008000
-#define BL1_RO_LIMIT			(BL1_RO_BASE + BL1_RO_SIZE)
-#define BL1_RW_BASE			(BL1_RO_BASE + BL1_RO_SIZE)
+#define BL1_RO_LIMIT			(BL1_RO_BASE + 0x16000)
+#define BL1_RW_BASE			(BL1_RO_LIMIT)
 #define BL1_RW_SIZE			0x00100000
-#define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE + MMC_DESC_SIZE)
+#define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE)
 
 /*******************************************************************************
  * BL2 specific defines.
  ******************************************************************************/
 /* Set it in DDR first. If necessary, we can set them into SRAM again. */
-#define BL2_BASE			(BL1_RW_BASE + 0x00010000)
-#define BL2_LIMIT			(BL2_BASE + 0x40000)
+#define BL2_BASE			(BL1_RW_BASE + 0x80000)
+#define BL2_LIMIT			(BL2_BASE + BL1_RW_SIZE - 0x40000)
 
 /*******************************************************************************
  * Load address of BL3-0 in the Juno port

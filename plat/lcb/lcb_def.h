@@ -41,6 +41,7 @@
 #define DRAM_SIZE			0x40000000
 
 #define XG2RAM0_BASE			0xF9800000
+#define XG2RAM0_SIZE			0x00400000
 
 /*
  * DRAM at 0x0000_0000 is divided in two regions:

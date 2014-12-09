@@ -56,7 +56,7 @@ static uintptr_t dw_mmc_init_params;
 
 static const io_block_spec_t bl1_mem_spec = {
 	.offset = BL1_RO_BASE,
-	.length = BL1_RO_SIZE,
+	.length = BL1_RO_LIMIT - BL1_RO_BASE,
 };
 
 static const io_block_spec_t bl1_mmc_spec = {
@@ -218,7 +218,7 @@ static int flush_bl1(void)
 {
 	uintptr_t bl1_image_spec, img_handle;
 	int i, result = IO_FAIL;
-	size_t bytes_read;
+	size_t bytes_read, length;
 
 	result = plat_get_image_source(BL1_IMAGE_NAME, &dw_mmc_dev_handle,
 				       &bl1_image_spec, &img_handle);
@@ -242,8 +242,9 @@ static int flush_bl1(void)
 		WARN("Failed to seek mmc device\n");
 		goto exit;
 	}
-	result = io_write(img_handle, BL1_RO_BASE, BL1_RO_SIZE, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
+	length = BL1_RO_LIMIT - BL1_RO_BASE;
+	result = io_write(img_handle, BL1_RO_BASE, length, &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < length)) {
 		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
 		goto exit;
 	}
@@ -252,8 +253,8 @@ static int flush_bl1(void)
 		WARN("Failed to seek mmc device\n");
 		goto exit;
 	}
-	result = io_read(img_handle, DDR_BASE, BL1_RO_SIZE, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
+	result = io_read(img_handle, DDR_BASE, length, &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < length)) {
 		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
 		goto exit;
 	}
@@ -266,8 +267,8 @@ static int flush_bl1(void)
 		goto exit;
 	}
 
-	result = io_read(img_handle, DDR_BASE, BL1_RO_SIZE, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
+	result = io_read(img_handle, DDR_BASE, length, &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < length)) {
 		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
 		goto exit;
 	}
@@ -284,7 +285,7 @@ int flush_image(void)
 {
 	uintptr_t bl1_image_spec;
 	int result = IO_FAIL;
-	size_t bytes_read;
+	size_t bytes_read, length;
 	uintptr_t img_handle;
 
 	result = plat_get_image_source(BL1_MEM_NAME, &bl1_mem_dev_handle,
@@ -296,8 +297,9 @@ int flush_image(void)
 		WARN("Failed to open memmap device\n");
 		goto exit;
 	}
-	result = io_read(img_handle, DDR_BASE, BL1_RO_SIZE, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
+	length = BL1_RO_LIMIT - BL1_RO_BASE;
+	result = io_read(img_handle, DDR_BASE, length, &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < length)) {
 		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
 		goto exit;
 	}
