@@ -1136,4 +1136,6 @@ void bl1_platform_setup(void)
 void bl1_plat_set_bl2_ep_info(image_info_t *bl2_image,
 			      entry_point_info_t *bl2_ep)
 {
+	SET_SECURITY_STATE(bl2_ep->h.attr, SECURE);
+	bl2_ep->spsr = SPSR_64(MODE_EL1, MODE_SP_ELX, DISABLE_ALL_EXCEPTIONS);
 }
