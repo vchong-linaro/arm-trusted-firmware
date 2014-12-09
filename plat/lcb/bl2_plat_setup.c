@@ -97,6 +97,12 @@ void bl2_early_platform_setup(meminfo_t *mem_layout)
 {
 	/* Initialize the console to provide early debug support */
 	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
+
+	/* Setup the BL2 memory layout */
+	bl2_tzram_layout = *mem_layout;
+
+	/* Initialise the IO layer and register platform IO devices */
+	io_setup();
 }
 
 /*******************************************************************************
