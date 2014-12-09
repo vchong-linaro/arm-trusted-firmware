@@ -145,10 +145,8 @@ static int open_dw_mmc(const uintptr_t spec, uintptr_t *image_handle)
 
 	/* dw_mmc_init_params isn't used at all */
 	result = io_dev_init(dw_mmc_dev_handle, dw_mmc_init_params);
-	NOTICE("#%s, %d, result:%d\n", __func__, __LINE__, result);
 	if (result == IO_SUCCESS) {
 		result = io_open(dw_mmc_dev_handle, spec, image_handle);
-		NOTICE("#%s, %d, result:%d\n", __func__, __LINE__, result);
 		if (result == IO_SUCCESS) {
 			/* INFO("Using DW MMC IO\n"); */
 			io_close(*image_handle);
@@ -195,7 +193,6 @@ int plat_get_image_source(const char *image_name, uintptr_t *dev_handle,
 	int result = IO_FAIL;
 	const struct plat_io_policy *policy;
 
-	NOTICE("#%s, %d, img name:%s\n", __func__, __LINE__, image_name);
 	if ((image_name != NULL) && (dev_handle != NULL) &&
 	    (image_spec != NULL)) {
 		policy = policies;
@@ -222,7 +219,6 @@ static int flush_bl1(void)
 	uintptr_t bl1_image_spec, img_handle;
 	int i, result = IO_FAIL;
 	size_t bytes_read;
-	unsigned int data;
 
 	result = plat_get_image_source(BL1_IMAGE_NAME, &dw_mmc_dev_handle,
 				       &bl1_image_spec, &img_handle);
@@ -231,6 +227,7 @@ static int flush_bl1(void)
 		WARN("Failed to open memmap device\n");
 		goto exit;
 	}
+#if 0
 	result = io_read(img_handle, DDR_BASE, BL1_RO_SIZE, &bytes_read);
 	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
 		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
@@ -238,15 +235,14 @@ static int flush_bl1(void)
 	}
 	for (i = 0; i < 0x10; i += 4) {
 		NOTICE("[0x%x]:0x%x   ", DDR_BASE + i, mmio_read_32(DDR_BASE + i));
-		data = mmio_read_32(DDR_BASE + i);
-		mmio_write_32(DDR_BASE + i, ~data);
 	}
+#endif
 	result = io_seek(img_handle, IO_SEEK_SET, MMC_BL1_BASE);
 	if (result != IO_SUCCESS) {
 		WARN("Failed to seek mmc device\n");
 		goto exit;
 	}
-	result = io_write(img_handle, DDR_BASE, BL1_RO_SIZE, &bytes_read);
+	result = io_write(img_handle, BL1_RO_BASE, BL1_RO_SIZE, &bytes_read);
 	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
 		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
 		goto exit;
@@ -277,8 +273,6 @@ static int flush_bl1(void)
 	}
 	for (i = 0; i < 0x10; i += 4) {
 		NOTICE("[0x%x]:0x%x   ", DDR_BASE + i, mmio_read_32(DDR_BASE + i));
-		data = mmio_read_32(DDR_BASE + i);
-		mmio_write_32(DDR_BASE + i, ~data);
 	}
 exit:
 	io_close(img_handle);
