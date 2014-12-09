@@ -188,20 +188,18 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 	fp = (file_state_t *)entity->info;
 
 	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
-	result = mmc0_read(fp->base + fp->file_pos, length, MMC_DATA_BASE);
+	result = mmc0_read(fp->base + fp->file_pos, length, buffer);
 	if (result) {
 		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
 	}
-	memcpy((void *)buffer, (void *)MMC_DATA_BASE, length);
-	//memcpy((void *)buffer, (void *)(fp->base + fp->file_pos), length);
 
 	*length_read = length;
 	/* advance the file 'cursor' for incremental reads */
 	fp->file_pos += length;
 
 	for (i = 0x0; i < 0x10; i += 4) {
-		NOTICE("###[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
+		NOTICE("###[0x%x]:0x%x  ", buffer + i, mmio_read_32(buffer + i));
 	}
 
 	return IO_SUCCESS;
