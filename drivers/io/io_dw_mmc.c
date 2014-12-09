@@ -213,7 +213,7 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 
 	assert(entity != NULL);
 	assert(buffer != (uintptr_t)NULL);
-	assert(length_read != NULL);
+	assert(length_written != NULL);
 
 	fp = (file_state_t *)entity->info;
 
