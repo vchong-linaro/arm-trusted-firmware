@@ -449,13 +449,10 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 	unsigned int src_blk_start = src_start / MMC_BLOCK_SIZE;
 	unsigned int src_blk_cnt, offset, bytes, desc_num, buf[4], data;
 	struct idmac_desc *desc = NULL;
-	int i, ret, last_idx;
+	int i, ret, last_idx, cmd_idx;
+	uintptr_t src_addr, dst_addr = dst_start;
 
 	offset = src_start % MMC_BLOCK_SIZE;
-	if (offset) {
-		NOTICE("The source address isn't aligned with MMC block!\n");
-		return -EFAULT;
-	}
 	src_blk_cnt = (src_size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
 	bytes = src_blk_cnt * MMC_BLOCK_SIZE;
 
@@ -492,7 +489,11 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 	mmio_write_32(MMC0_DBADDR, MMC_DESC_BASE);
 
 	/* send read command */
-	ret = mmc0_send_cmd(18, src_blk_start, buf);
+	if (src_blk_cnt > 1)
+		cmd_idx = 18;	/* read multiple block */
+	else
+		cmd_idx = 17;	/* read single block */
+	ret = mmc0_send_cmd(cmd_idx, src_blk_start, buf);
 	if (ret) {
 		NOTICE("failed to send CMD18\n");
 		mmio_write_32(MMC0_RINTSTS, ~0);
@@ -520,6 +521,8 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 		}
 		mmio_write_32(MMC0_RINTSTS, ~0);
 	}
+	src_addr = MMC_DATA_BASE + offset;
+	memcpy((void *)dst_addr, (void *)src_addr, src_size);
 #if 0
 	for (i = 0; i < 0x400; i += 4)
 		NOTICE("[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
