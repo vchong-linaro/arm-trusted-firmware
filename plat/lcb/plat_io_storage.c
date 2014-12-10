@@ -74,15 +74,25 @@ static const io_file_spec_t bl2_file_spec = {
 	.mode = FOPEN_MODE_RB
 };
 
-static int open_bl1_mem(const uintptr_t spec, uintptr_t *image_handle);
-static int open_fip(const uintptr_t spec, uintptr_t *image_handle);
-static int open_dw_mmc(const uintptr_t spec, uintptr_t *image_handle);
+static const io_file_spec_t bl31_file_spec = {
+	.path = BL31_IMAGE_NAME,
+	.mode = FOPEN_MODE_RB
+};
+
+static const io_file_spec_t bl33_file_spec = {
+	.path = BL33_IMAGE_NAME,
+	.mode = FOPEN_MODE_RB
+};
+
+static int open_bl1_mem(const uintptr_t spec);
+static int open_fip(const uintptr_t spec);
+static int open_dw_mmc(const uintptr_t spec);
 
 struct plat_io_policy {
 	const char *image_name;
 	uintptr_t *dev_handle;
 	uintptr_t image_spec;
-	int (*check)(const uintptr_t spec, uintptr_t *image_handle);
+	int (*check)(const uintptr_t spec);
 };
 
 static const struct plat_io_policy policies[] = {
@@ -107,25 +117,36 @@ static const struct plat_io_policy policies[] = {
 		(uintptr_t)&bl2_file_spec,
 		open_fip
 	}, {
+		BL31_IMAGE_NAME,
+		&fip_dev_handle,
+		(uintptr_t)&bl31_file_spec,
+		open_fip
+	}, {
+		BL33_IMAGE_NAME,
+		&fip_dev_handle,
+		(uintptr_t)&bl33_file_spec,
+		open_fip
+	}, {
 		0, 0, 0
 	}
 };
 
-static int open_bl1_mem(const uintptr_t spec, uintptr_t *image_handle)
+static int open_bl1_mem(const uintptr_t spec)
 {
 	int result = IO_FAIL;
+	uintptr_t image_handle;
 
 	result = io_dev_init(bl1_mem_dev_handle, bl1_mem_init_params);
 	if (result == IO_SUCCESS) {
-		result = io_open(bl1_mem_dev_handle, spec, image_handle);
+		result = io_open(bl1_mem_dev_handle, spec, &image_handle);
 		if (result == IO_SUCCESS) {
-			io_close(*image_handle);
+			io_close(image_handle);
 		}
 	}
 	return result;
 }
 
-static int open_fip(const uintptr_t spec, uintptr_t *image_handle)
+static int open_fip(const uintptr_t spec)
 {
 	int result = IO_FAIL;
 
@@ -139,17 +160,18 @@ static int open_fip(const uintptr_t spec, uintptr_t *image_handle)
 }
 
 
-static int open_dw_mmc(const uintptr_t spec, uintptr_t *image_handle)
+static int open_dw_mmc(const uintptr_t spec)
 {
 	int result = IO_FAIL;
+	uintptr_t image_handle;
 
 	/* dw_mmc_init_params isn't used at all */
 	result = io_dev_init(dw_mmc_dev_handle, dw_mmc_init_params);
 	if (result == IO_SUCCESS) {
-		result = io_open(dw_mmc_dev_handle, spec, image_handle);
+		result = io_open(dw_mmc_dev_handle, spec, &image_handle);
 		if (result == IO_SUCCESS) {
 			/* INFO("Using DW MMC IO\n"); */
-			io_close(*image_handle);
+			io_close(image_handle);
 		}
 	}
 	return result;
@@ -188,7 +210,7 @@ void io_setup(void)
 /* Return an IO device handle and specification which can be used to access
  * an image. Use this to enforce platform load policy */
 int plat_get_image_source(const char *image_name, uintptr_t *dev_handle,
-			  uintptr_t *image_spec, uintptr_t *image_handle)
+			  uintptr_t *image_spec)
 {
 	int result = IO_FAIL;
 	const struct plat_io_policy *policy;
@@ -198,8 +220,7 @@ int plat_get_image_source(const char *image_name, uintptr_t *dev_handle,
 		policy = policies;
 		while (policy->image_name != NULL) {
 			if (strcmp(policy->image_name, image_name) == 0) {
-				result = policy->check(policy->image_spec,
-						       image_handle);
+				result = policy->check(policy->image_spec);
 				if (result == IO_SUCCESS) {
 					*image_spec = policy->image_spec;
 					*dev_handle = *(policy->dev_handle);
@@ -221,7 +242,7 @@ static int flush_bl1(void)
 	size_t bytes_read, length;
 
 	result = plat_get_image_source(BL1_IMAGE_NAME, &dw_mmc_dev_handle,
-				       &bl1_image_spec, &img_handle);
+				       &bl1_image_spec);
 	result = io_open(dw_mmc_dev_handle, bl1_image_spec, &img_handle);
 	if (result != IO_SUCCESS) {
 		WARN("Failed to open memmap device\n");
@@ -289,8 +310,7 @@ int flush_image(void)
 	uintptr_t img_handle;
 
 	result = plat_get_image_source(BL1_MEM_NAME, &bl1_mem_dev_handle,
-				       &bl1_image_spec,
-				       &img_handle);
+				       &bl1_image_spec);
 
 	result = io_open(bl1_mem_dev_handle, bl1_image_spec, &img_handle);
 	if (result != IO_SUCCESS) {
