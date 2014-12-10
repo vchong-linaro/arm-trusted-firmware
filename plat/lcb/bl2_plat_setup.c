@@ -209,6 +209,9 @@ int bl2_plat_handle_bl30(image_info_t *bl30_image_info)
 void bl2_plat_set_bl31_ep_info(image_info_t *bl31_image_info,
 			       entry_point_info_t *bl31_ep_info)
 {
+	SET_SECURITY_STATE(bl31_ep_info->h.attr, SECURE);
+	bl31_ep_info->spsr = SPSR_64(MODE_EL3, MODE_SP_ELX,
+				       DISABLE_ALL_EXCEPTIONS);
 }
 
 /*******************************************************************************
