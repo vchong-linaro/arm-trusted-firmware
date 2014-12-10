@@ -231,6 +231,26 @@ void bl2_plat_set_bl32_ep_info(image_info_t *bl32_image_info,
 void bl2_plat_set_bl33_ep_info(image_info_t *image,
 				       entry_point_info_t *bl33_ep_info)
 {
+	unsigned long el_status;
+	unsigned int mode;
+
+	/* Figure out what mode we enter the non-secure world in */
+	el_status = read_id_aa64pfr0_el1() >> ID_AA64PFR0_EL2_SHIFT;
+	el_status &= ID_AA64PFR0_ELX_MASK;
+
+	if (el_status)
+		mode = MODE_EL2;
+	else
+		mode = MODE_EL1;
+
+	/*
+	 * TODO: Consider the possibility of specifying the SPSR in
+	 * the FIP ToC and allowing the platform to have a say as
+	 * well.
+	 */
+	bl33_ep_info->spsr = SPSR_64(mode, MODE_SP_ELX,
+				       DISABLE_ALL_EXCEPTIONS);
+	SET_SECURITY_STATE(bl33_ep_info->h.attr, NON_SECURE);
 }
 
 /*******************************************************************************
@@ -245,4 +265,8 @@ void bl2_plat_get_bl32_meminfo(meminfo_t *bl32_meminfo)
  ******************************************************************************/
 void bl2_plat_get_bl33_meminfo(meminfo_t *bl33_meminfo)
 {
+	bl33_meminfo->total_base = DRAM_NS_BASE;
+	bl33_meminfo->total_size = DRAM_NS_SIZE;
+	bl33_meminfo->free_base = DRAM_NS_BASE;
+	bl33_meminfo->free_size = DRAM_NS_SIZE;
 }

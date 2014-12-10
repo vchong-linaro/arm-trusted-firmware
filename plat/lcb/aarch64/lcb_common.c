@@ -113,7 +113,7 @@ DEFINE_CONFIGURE_MMU_EL(3)
 
 unsigned long plat_get_ns_image_entrypoint(void)
 {
-	return 0;
+	return NS_IMAGE_OFFSET;
 }
 
 uint64_t plat_get_syscnt_freq(void)
