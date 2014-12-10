@@ -112,9 +112,9 @@
  * addresses.
  ******************************************************************************/
 #define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
-#define BL1_RO_LIMIT			(BL1_RO_BASE + 0x16000)
+#define BL1_RO_LIMIT			(BL1_RO_BASE + 0xe000)
 #define BL1_RW_BASE			(BL1_RO_LIMIT)
-#define BL1_RW_SIZE			0x00100000
+#define BL1_RW_SIZE			0x001f0000
 #define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE)
 
 /*******************************************************************************
@@ -122,15 +122,13 @@
  ******************************************************************************/
 /* Set it in DDR first. If necessary, we can set them into SRAM again. */
 #define BL2_BASE			(BL1_RW_BASE + 0x80000)
-#define BL2_LIMIT			(BL2_BASE + BL1_RW_SIZE - 0x40000)
+#define BL2_LIMIT			(BL2_BASE + 0x80000)
 
 /*******************************************************************************
  * BL3-1 specific defines.
  ******************************************************************************/
-#define BL31_BASE			(DDR_BASE + 0x40000)
-#define BL31_LIMIT			BL32_BASE
-#define BL32_BASE			DRAM_SEC_BASE
-#define BL32_LIMIT			(DRAM_SEC_BASE + DRAM_SEC_SIZE)
+#define BL31_BASE			(BL1_RW_BASE + 0x100000)
+#define BL31_LIMIT			(BL31_BASE + 0xf0000)
 
 /*******************************************************************************
  * Load address of BL3-3 in the LCB port
@@ -146,7 +144,7 @@
 # define MAX_XLAT_TABLES		2
 #endif
 
-#if IMAGE_BL1 || IMAGE_BL2 || IMAGE_BL32
+#if IMAGE_BL1 || IMAGE_BL2
 # define MAX_XLAT_TABLES		3
 #endif
 
