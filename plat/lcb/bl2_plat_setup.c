@@ -40,6 +40,35 @@
 #include "lcb_def.h"
 #include "lcb_private.h"
 
+/*******************************************************************************
+ * Declarations of linker defined symbols which will help us find the layout
+ * of trusted RAM
+ ******************************************************************************/
+extern unsigned long __RO_START__;
+extern unsigned long __RO_END__;
+
+extern unsigned long __COHERENT_RAM_START__;
+extern unsigned long __COHERENT_RAM_END__;
+
+/*
+ * The next 2 constants identify the extents of the code & RO data region.
+ * These addresses are used by the MMU setup code and therefore they must be
+ * page-aligned.  It is the responsibility of the linker script to ensure that
+ * __RO_START__ and __RO_END__ linker symbols refer to page-aligned addresses.
+ */
+#define BL2_RO_BASE (unsigned long)(&__RO_START__)
+#define BL2_RO_LIMIT (unsigned long)(&__RO_END__)
+
+/*
+ * The next 2 constants identify the extents of the coherent memory region.
+ * These addresses are used by the MMU setup code and therefore they must be
+ * page-aligned.  It is the responsibility of the linker script to ensure that
+ * __COHERENT_RAM_START__ and __COHERENT_RAM_END__ linker symbols refer to
+ * page-aligned addresses.
+ */
+#define BL2_COHERENT_RAM_BASE (unsigned long)(&__COHERENT_RAM_START__)
+#define BL2_COHERENT_RAM_LIMIT (unsigned long)(&__COHERENT_RAM_END__)
+
 /* Data structure which holds the extents of the trusted RAM for BL2 */
 static meminfo_t bl2_tzram_layout
 __attribute__ ((aligned(PLATFORM_CACHE_LINE_SIZE),
@@ -136,6 +165,8 @@ void bl2_platform_setup(void)
 /* Flush the TF params and the TF plat params */
 void bl2_plat_flush_bl31_params(void)
 {
+	flush_dcache_range((unsigned long)&bl31_params_mem,
+			sizeof(bl2_to_bl31_params_mem_t));
 }
 
 /*******************************************************************************
@@ -144,6 +175,12 @@ void bl2_plat_flush_bl31_params(void)
  ******************************************************************************/
 void bl2_plat_arch_setup(void)
 {
+	configure_mmu_el1(bl2_tzram_layout.total_base,
+			  bl2_tzram_layout.total_size,
+			  BL2_RO_BASE,
+			  BL2_RO_LIMIT,
+			  BL2_COHERENT_RAM_BASE,
+			  BL2_COHERENT_RAM_LIMIT);
 }
 
 /*******************************************************************************
