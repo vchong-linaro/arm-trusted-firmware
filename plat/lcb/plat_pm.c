@@ -41,9 +41,24 @@
 #include "lcb_private.h"
 
 /*******************************************************************************
+ * Export the platform handlers to enable psci to invoke them
+ ******************************************************************************/
+static const plat_pm_ops_t lcb_ops = {
+	.affinst_on		= NULL,
+	.affinst_on_finish	= NULL,
+	.affinst_off		= NULL,
+	.affinst_standby	= NULL,
+	.affinst_suspend	= NULL,
+	.affinst_suspend_finish	= NULL,
+	.system_off		= NULL,
+	.system_reset		= NULL,
+};
+
+/*******************************************************************************
  * Export the platform specific power ops.
  ******************************************************************************/
 int32_t platform_setup_pm(const plat_pm_ops_t **plat_ops)
 {
+	*plat_ops = &lcb_ops;
 	return 0;
 }
