@@ -140,11 +140,7 @@
  ******************************************************************************/
 #define ADDR_SPACE_SIZE			(1ull << 32)
 
-#if IMAGE_BL31
-# define MAX_XLAT_TABLES		2
-#endif
-
-#if IMAGE_BL1 || IMAGE_BL2
+#if IMAGE_BL1 || IMAGE_BL2 || IMAGE_BL31
 # define MAX_XLAT_TABLES		3
 #endif
 
