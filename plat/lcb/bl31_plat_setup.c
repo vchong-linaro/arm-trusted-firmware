@@ -109,6 +109,14 @@ entry_point_info_t *bl31_plat_get_next_image_ep_info(uint32_t type)
 void bl31_early_platform_setup(bl31_params_t *from_bl2,
 			       void *plat_params_from_bl2)
 {
+	/* Initialize the console to provide early debug support */
+	console_init(PL011_UART0_BASE, PL011_UART0_CLK_IN_HZ, PL011_BAUDRATE);
+
+	/*
+	 * Copy BL3-3 entry point information.
+	 * They are stored in Secure RAM, in BL2's address space.
+	 */
+	bl33_ep_info = *from_bl2->bl33_ep_info;
 }
 
 /*******************************************************************************
@@ -124,4 +132,10 @@ void bl31_platform_setup(void)
  ******************************************************************************/
 void bl31_plat_arch_setup()
 {
+	configure_mmu_el3(BL31_RO_BASE,
+			  BL31_COHERENT_RAM_LIMIT - BL31_RO_BASE,
+			  BL31_RO_BASE,
+			  BL31_RO_LIMIT,
+			  BL31_COHERENT_RAM_BASE,
+			  BL31_COHERENT_RAM_LIMIT);
 }
