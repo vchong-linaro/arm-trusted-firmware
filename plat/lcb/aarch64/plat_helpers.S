@@ -40,6 +40,7 @@
 
 	.globl	plat_crash_console_init
 	.globl	plat_crash_console_putc
+	.globl	plat_report_exception
 	.globl	plat_reset_handler
 	.globl	platform_get_core_pos
 	.globl	platform_mem_init
@@ -70,6 +71,23 @@ func plat_crash_console_init
 func plat_crash_console_putc
 	mov_imm	x1, LCB_CRASH_CONSOLE_BASE
 	b	console_core_putc
+
+	/* ---------------------------------------------
+	 * void plat_report_exception(unsigned int type)
+	 * Function to report an unhandled exception
+	 * with platform-specific means.
+	 * On LCB platform, it updates the LEDs
+	 * to indicate where we are
+	 * ---------------------------------------------
+	 */
+func plat_report_exception
+	mov	x8, x0
+	/* Turn On RED led */
+	ldr	x2, =0xf8000260
+	mov	w0, #1
+	str	w0, [x2]
+	mov	x0, x8
+	ret
 
 	/* -----------------------------------------------------
 	 * void plat_reset_handler(void);
