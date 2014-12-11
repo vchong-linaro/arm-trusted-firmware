@@ -57,6 +57,13 @@
 #define VSET_BUCK3_ADJ				0x06e
 #define LDO19_REG_ADJ				0x084
 #define LDO20_REG_ADJ				0x085
+#define DR_LED_CTRL				0x098
+#define DR_OUT_CTRL				0x099
+#define DR3_ISET				0x09a
+#define DR3_START_DEL				0x09b
+#define DR4_ISET				0x09c
+#define DR4_START_DEL				0x09d
+#define DR345_TIM_CONF0				0x0a0
 #define NP_REG_ADJ1				0x0be
 #define NP_REG_CHG				0x0c0
 #define BUCK01_CTRL2				0x0d9
@@ -67,6 +74,12 @@
 #define BUCK1_CTRL5				0x0ec
 #define BUCK1_CTRL7				0x0ef
 #define CLK19M2_600_586_EN			0x0fe
+
+#define LED_START_DELAY_TIME			0x00
+#define LED_ELEC_VALUE				0x07
+#define LED_LIGHT_TIME				0xf0
+#define LED_GREEN_ENABLE			(1 << 1)
+#define LED_OUT_CTRL				0x00
 
 unsigned char hi6553_read_8(unsigned int offset);
 void hi6553_write_8(unsigned int offset, unsigned int value);

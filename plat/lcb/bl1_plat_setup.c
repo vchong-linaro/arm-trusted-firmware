@@ -1053,6 +1053,22 @@ int query_boot_mode(void)
 	return boot_mode;
 }
 
+static void led_on(void)
+{
+	unsigned int data;
+
+	/* DR3: red led, DR4: green led */
+	hi6553_write_8(DR3_START_DEL, LED_START_DELAY_TIME);
+	hi6553_write_8(DR3_ISET, LED_ELEC_VALUE);
+	hi6553_write_8(DR4_START_DEL, LED_START_DELAY_TIME);
+	hi6553_write_8(DR4_ISET,LED_ELEC_VALUE);
+	hi6553_write_8(DR345_TIM_CONF0, LED_LIGHT_TIME);
+	data = hi6553_read_8(DR_LED_CTRL);
+	data |= LED_GREEN_ENABLE;
+	hi6553_write_8(DR_LED_CTRL, data);
+	hi6553_write_8(DR_OUT_CTRL, LED_OUT_CTRL);
+}
+
 /*******************************************************************************
  * Perform any BL1 specific platform actions.
  ******************************************************************************/
@@ -1117,6 +1133,7 @@ void bl1_platform_setup(void)
 	init_mmc_pll();
 	reset_mmc0_clk();
 	io_setup();
+	led_on();
 #if 0
 	if (query_boot_mode()) {
 		flush_image();
