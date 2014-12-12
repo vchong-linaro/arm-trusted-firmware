@@ -75,6 +75,7 @@ BL1_SOURCES		+=	drivers/arm/cci400/cci400.c		\
 
 BL2_SOURCES		+=	plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/aarch64/lcb_common.c		\
+				plat/lcb/aarch64/plat_helpers.S		\
 				plat/lcb/bl2_plat_setup.c		\
 				plat/lcb/dw_mmc.c			\
 				plat/lcb/sp804_timer.c
@@ -83,6 +84,7 @@ BL31_SOURCES		+=	drivers/arm/gic/arm_gic.c		\
 				lib/cpus/aarch64/cortex_a53.S		\
 				plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/aarch64/lcb_common.c		\
+				plat/lcb/aarch64/plat_helpers.S		\
 				plat/lcb/bl31_plat_setup.c		\
 				plat/lcb/plat_pm.c			\
 				plat/lcb/plat_topology.c
