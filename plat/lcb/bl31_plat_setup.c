@@ -120,21 +120,10 @@ void bl31_early_platform_setup(bl31_params_t *from_bl2,
 }
 
 /*******************************************************************************
- * Initialize the MHU and the GIC.
+ * Initialize the GIC.
  ******************************************************************************/
 void bl31_platform_setup(void)
 {
-	unsigned int cntfrq;
-
-	/*
-	 * Set the frequency of ARM Arch Timer that should be only set in EL3.
-	 * UEFI requires to use the Arch Timer.
-	 * The frequency is 1.2MHz since it's divider from 19.2MHz.
-	 */
-	cntfrq = 1200000;
-	__asm__ volatile ("msr	cntfrq_el0, %0\n"
-			  : : "r" (cntfrq));
-
 	/* Initialize the gic cpu and distributor interfaces */
 	plat_gic_init();
 	arm_gic_setup();

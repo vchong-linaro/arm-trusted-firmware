@@ -134,7 +134,7 @@ unsigned long plat_get_ns_image_entrypoint(void)
 
 uint64_t plat_get_syscnt_freq(void)
 {
-	return 0;
+	return 1200000;
 }
 
 void plat_gic_init(void)
