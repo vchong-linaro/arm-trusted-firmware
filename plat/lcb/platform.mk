@@ -81,6 +81,8 @@ BL2_SOURCES		+=	plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/sp804_timer.c
 
 BL31_SOURCES		+=	drivers/arm/gic/arm_gic.c		\
+				drivers/arm/gic/gic_v2.c		\
+				drivers/arm/gic/gic_v3.c		\
 				lib/cpus/aarch64/cortex_a53.S		\
 				plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/aarch64/lcb_common.c		\

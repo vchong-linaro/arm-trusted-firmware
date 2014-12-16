@@ -134,6 +134,10 @@ void bl31_platform_setup(void)
 	cntfrq = 1200000;
 	__asm__ volatile ("msr	cntfrq_el0, %0\n"
 			  : : "r" (cntfrq));
+
+	/* Initialize the gic cpu and distributor interfaces */
+	plat_gic_init();
+	arm_gic_setup();
 }
 
 /*******************************************************************************

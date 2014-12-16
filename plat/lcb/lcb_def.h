@@ -61,8 +61,17 @@
  ******************************************************************************/
 #define GICD_BASE			0xF6801000
 #define GICC_BASE			0xF6802000
-#define GICH_BASE			0xF6803000
-#define GICV_BASE			0xF6804000
+
+#define IRQ_SEC_PHY_TIMER		29
+#define IRQ_SEC_SGI_0			8
+#define IRQ_SEC_SGI_1			9
+#define IRQ_SEC_SGI_2			10
+#define IRQ_SEC_SGI_3			11
+#define IRQ_SEC_SGI_4			12
+#define IRQ_SEC_SGI_5			13
+#define IRQ_SEC_SGI_6			14
+#define IRQ_SEC_SGI_7			15
+#define IRQ_SEC_SGI_8			16
 
 /*******************************************************************************
  * PL011 related constants
