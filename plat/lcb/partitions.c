@@ -101,6 +101,6 @@ int get_partition(void)
 		return -EFAULT;
 	}
 	/* load 256KB into address 0x0 */
-	ret = mmc0_read(0, 0x4400, 0);
+	ret = mmc0_read(0, 0x4400, 0, 0);
 	return ret;
 }

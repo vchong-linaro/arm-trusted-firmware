@@ -53,15 +53,17 @@ typedef struct {
 	int		in_use;
 	uintptr_t	base;
 	size_t		file_pos;
+	int		boot_partition;
 } file_state_t;
 
 struct dw_mmc_info {
 	int		init;
+	int		boot_partition;
 };
 
 static file_state_t current_file = {0};
 
-static struct dw_mmc_info dw_mmc_info = {0};
+static struct dw_mmc_info dw_mmc_info = {0, 0};
 
 static int dw_mmc_dev_open(const uintptr_t dev_spec, io_dev_info_t **dev_info);
 static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
@@ -131,6 +133,7 @@ static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
 {
 	int result = IO_FAIL;
 	const io_block_spec_t *block_spec = (io_block_spec_t *)spec;
+	struct dw_mmc_info *info = (struct dw_mmc_info *)(dev_info->info);
 
 	/* Since we need to track open state for seek() we only allow one open
 	 * spec at a time. When we have dynamic memory we can malloc and set
@@ -144,6 +147,7 @@ static int dw_mmc_block_open(io_dev_info_t *dev_info, const uintptr_t spec,
 		current_file.base = block_spec->offset;
 		/* File cursor offset for seek and incremental reads etc. */
 		current_file.file_pos = 0;
+		current_file.boot_partition = info->boot_partition;
 		entity->info = (uintptr_t)&current_file;
 		result = IO_SUCCESS;
 	} else {
@@ -187,8 +191,9 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 
 	fp = (file_state_t *)entity->info;
 
+	NOTICE("###%s, %d, boot_partition:%d\n", __func__, __LINE__, fp->boot_partition);
 	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
-	result = mmc0_read(fp->base + fp->file_pos, length, buffer);
+	result = mmc0_read(fp->base + fp->file_pos, length, buffer, fp->boot_partition);
 	if (result) {
 		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
@@ -217,9 +222,10 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 
 	fp = (file_state_t *)entity->info;
 
+	NOTICE("###%s, %d, boot_partition:%d\n", __func__, __LINE__, fp->boot_partition);
 	memcpy((void *)MMC_DATA_BASE, (void *)buffer, length);
 	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
-	result = mmc0_write(fp->base + fp->file_pos, length, MMC_DATA_BASE);
+	result = mmc0_write(fp->base + fp->file_pos, length, MMC_DATA_BASE, fp->boot_partition);
 	if (result) {
 		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
@@ -252,10 +258,12 @@ static int dw_mmc_dev_init(io_dev_info_t *dev_info, const uintptr_t init_params)
 {
 	struct dw_mmc_info *info = (struct dw_mmc_info *)(dev_info->info);
 
+	NOTICE("###init dwmmc, init:%d, boot partition:%d\n", info->init, init_params);
 	if (!info->init) {
 		init_mmc();
 		info->init = 1;
 	}
+	info->boot_partition = init_params;
 	return IO_SUCCESS;
 }
 

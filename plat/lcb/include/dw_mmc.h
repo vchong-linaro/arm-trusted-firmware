@@ -128,7 +128,7 @@
 #define MMC_CARD_RD_THR_EN			(1 << 0)
 
 extern void init_mmc(void);
-extern int mmc0_read(unsigned int, unsigned int, unsigned int);
-extern int mmc0_write(unsigned int, unsigned int, unsigned int);
+extern int mmc0_read(unsigned int, unsigned int, unsigned int, unsigned int);
+extern int mmc0_write(unsigned int, unsigned int, unsigned int, unsigned int);
 
 #endif /* __DW_MMC_H */
