@@ -223,9 +223,7 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 	fp = (file_state_t *)entity->info;
 
 	NOTICE("###%s, %d, boot_partition:%d\n", __func__, __LINE__, fp->boot_partition);
-	memcpy((void *)MMC_DATA_BASE, (void *)buffer, length);
-	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
-	result = mmc0_write(fp->base + fp->file_pos, length, MMC_DATA_BASE, fp->boot_partition);
+	result = mmc0_write(fp->base + fp->file_pos, length, buffer, fp->boot_partition);
 	if (result) {
 		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
@@ -236,7 +234,7 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 	fp->file_pos += length;
 
 	for (i = 0x0; i < 0x10; i += 4) {
-		NOTICE("###[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
+		NOTICE("###[0x%x]:0x%x  ", buffer + i, mmio_read_32(buffer + i));
 	}
 	return IO_SUCCESS;
 }

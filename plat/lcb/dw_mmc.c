@@ -644,6 +644,7 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 	struct idmac_desc *desc = NULL;
 	int i, ret, last_idx, cmd_idx;
 
+	NOTICE("##lba:0x%x, buffer:0x%x, boot:%d\n", lba, buffer, boot_partition);
 	if (boot_partition) {
 		/* switch to boot partition 1 */
 		ret = mmc0_update_ext_csd(179, (1 << 3) | 1);
@@ -666,7 +667,7 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 				   IDMAC_DES0_DIC;
 		(desc + i)->des1 = IDMAC_DES1_BS1(MMC_DMA_MAX_BUFFER_SIZE);
 		/* buffer address */
-		(desc + i)->des2 = MMC_DATA_BASE + MMC_DMA_MAX_BUFFER_SIZE * i;
+		(desc + i)->des2 = buffer + MMC_DMA_MAX_BUFFER_SIZE * i;
 		/* next descriptor address */
 		(desc + i)->des3 = MMC_DESC_BASE +
 				   (sizeof(struct idmac_desc) * (i + 1));
@@ -725,22 +726,24 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 	return ret;
 }
 
-int mmc0_write(unsigned int src_start, unsigned int src_size,
-		unsigned int dst_start, unsigned int boot_partition)
+int mmc0_write(unsigned int mmc_start, unsigned int size,
+		unsigned int buffer, unsigned int boot_partition)
 {
-	unsigned int src_blk_start = src_start / MMC_BLOCK_SIZE;
-	unsigned int src_blk_cnt, offset;
+	unsigned int mmc_blk_start = mmc_start / MMC_BLOCK_SIZE;
+	unsigned int mmc_blk_cnt, offset;
 	int i, ret = 0;
 
-	offset = src_start % MMC_BLOCK_SIZE;
+	offset = mmc_start % MMC_BLOCK_SIZE;
 	if (offset) {
 		NOTICE("The source address isn't aligned with MMC block!\n");
 		return -EFAULT;
 	}
-	src_blk_cnt = (src_size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
+	mmc_blk_cnt = (size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
 
-	for (i = 0; i < src_blk_cnt; i++) {
-		ret = write_single_block(src_blk_start + i, dst_start, boot_partition);
+	for (i = 0; i < mmc_blk_cnt; i++) {
+		ret = write_single_block(mmc_blk_start + i,
+					 buffer + i * MMC_BLOCK_SIZE,
+					 boot_partition);
 		if (ret)
 			return ret;
 	}
