@@ -1134,11 +1134,9 @@ void bl1_platform_setup(void)
 	reset_mmc0_clk();
 	io_setup();
 	led_on();
-#if 0
 	if (query_boot_mode()) {
 		flush_image();
 	}
-#endif
 	//init_mmc();
 	query_clk_freq(CLK_MMC0_SRC);
 	//get_partition();

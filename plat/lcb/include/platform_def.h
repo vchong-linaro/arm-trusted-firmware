@@ -51,9 +51,11 @@
 
 #define FIRMWARE_WELCOME_STR		"Booting Trusted Firmware\n"
 
-#define BL1_MEM_NAME			"bl1_mem"
+#define LOADER_MEM_NAME			"loader_mem"
 
-#define BL1_IMAGE_NAME			"bl1.bin"
+#define BOOT_EMMC_NAME			"l-loader.bin"
+
+#define NORMAL_EMMC_NAME		"normal emmc"
 
 /* Trusted Boot Firmware BL2 */
 #define BL2_IMAGE_NAME			"bl2.bin"
@@ -92,11 +94,12 @@
  ******************************************************************************/
 #define MMC_BASE			0x00000000
 #define MMC_SIZE			0x80000000
-#define MMC_BL1_BASE			MMC_BASE
-#define MMC_BL1_SIZE			0x00200000
-#define MMC_BL2_BASE			(MMC_BASE + MMC_BL1_SIZE)
+#define MMC_LOADER_BASE			MMC_BASE		/* boot */
+#define MMC_BL1_SIZE			0x0000c800
+#define MMC_BL2_BASE			(MMC_BASE + 0x200000)	/* normal */
 
 #define ONCHIPROM_PARAM_BASE		(XG2RAM0_BASE + 0x1000)
+#define LOADER_RAM_BASE			(XG2RAM0_BASE + 0x800)
 #define BL1_XG2RAM0_OFFSET		0x2000
 
 #define DDR_BASE			0x00000000
@@ -112,8 +115,8 @@
  * addresses.
  ******************************************************************************/
 #define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
-#define BL1_RO_LIMIT			(BL1_RO_BASE + 0xe000)
-#define BL1_RW_BASE			(BL1_RO_LIMIT)	/* 0xf981_0000 */
+#define BL1_RO_LIMIT			(LOADER_RAM_BASE + MMC_BL1_SIZE)
+#define BL1_RW_BASE			(BL1_RO_LIMIT)	/* 0xf980_d000 */
 #define BL1_RW_SIZE			0x001f0000
 #define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE)
 

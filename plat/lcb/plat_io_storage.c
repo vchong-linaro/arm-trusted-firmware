@@ -44,7 +44,7 @@
 
 static const io_dev_connector_t *bl1_mem_dev_con;
 static uintptr_t bl1_mem_dev_spec;
-static uintptr_t bl1_mem_dev_handle;
+static uintptr_t loader_mem_dev_handle;
 static uintptr_t bl1_mem_init_params;
 static const io_dev_connector_t *fip_dev_con;
 static uintptr_t fip_dev_spec;
@@ -52,16 +52,21 @@ static uintptr_t fip_dev_handle;
 static const io_dev_connector_t *dw_mmc_dev_con;
 static uintptr_t dw_mmc_dev_spec;
 static uintptr_t dw_mmc_dev_handle;
-static uintptr_t dw_mmc_init_params;
 
-static const io_block_spec_t bl1_mem_spec = {
-	.offset = BL1_RO_BASE,
-	.length = BL1_RO_LIMIT - BL1_RO_BASE,
+static const io_block_spec_t loader_mem_spec = {
+	/* l-loader.bin that contains bl1.bin */
+	.offset = LOADER_RAM_BASE,
+	.length = BL1_RO_LIMIT - LOADER_RAM_BASE + 0x800,
 };
 
-static const io_block_spec_t bl1_mmc_spec = {
-	.offset = MMC_BL1_BASE,
-	.length = MMC_BL1_SIZE,
+static const io_block_spec_t boot_emmc_spec = {
+	.offset = MMC_LOADER_BASE,
+	.length = BL1_RO_LIMIT - LOADER_RAM_BASE,
+};
+
+static const io_block_spec_t normal_emmc_spec = {
+	.offset = MMC_BASE,
+	.length = MMC_SIZE,
 };
 
 static const io_block_spec_t fip_block_spec = {
@@ -84,9 +89,10 @@ static const io_file_spec_t bl33_file_spec = {
 	.mode = FOPEN_MODE_RB
 };
 
-static int open_bl1_mem(const uintptr_t spec);
+static int open_loader_mem(const uintptr_t spec);
 static int open_fip(const uintptr_t spec);
 static int open_dw_mmc(const uintptr_t spec);
+static int open_dw_mmc_boot(const uintptr_t spec);
 
 struct plat_io_policy {
 	const char *image_name;
@@ -97,14 +103,19 @@ struct plat_io_policy {
 
 static const struct plat_io_policy policies[] = {
 	{
-		BL1_MEM_NAME,
-		&bl1_mem_dev_handle,
-		(uintptr_t)&bl1_mem_spec,
-		open_bl1_mem
+		LOADER_MEM_NAME,
+		&loader_mem_dev_handle,
+		(uintptr_t)&loader_mem_spec,
+		open_loader_mem
 	}, {
-		BL1_IMAGE_NAME,
+		BOOT_EMMC_NAME,
 		&dw_mmc_dev_handle,
-		(uintptr_t)&bl1_mmc_spec,
+		(uintptr_t)&boot_emmc_spec,
+		open_dw_mmc_boot
+	}, {
+		NORMAL_EMMC_NAME,
+		&dw_mmc_dev_handle,
+		(uintptr_t)&normal_emmc_spec,
 		open_dw_mmc
 	}, {
 		FIP_IMAGE_NAME,
@@ -131,14 +142,14 @@ static const struct plat_io_policy policies[] = {
 	}
 };
 
-static int open_bl1_mem(const uintptr_t spec)
+static int open_loader_mem(const uintptr_t spec)
 {
 	int result = IO_FAIL;
 	uintptr_t image_handle;
 
-	result = io_dev_init(bl1_mem_dev_handle, bl1_mem_init_params);
+	result = io_dev_init(loader_mem_dev_handle, bl1_mem_init_params);
 	if (result == IO_SUCCESS) {
-		result = io_open(bl1_mem_dev_handle, spec, &image_handle);
+		result = io_open(loader_mem_dev_handle, spec, &image_handle);
 		if (result == IO_SUCCESS) {
 			io_close(image_handle);
 		}
@@ -165,8 +176,25 @@ static int open_dw_mmc(const uintptr_t spec)
 	int result = IO_FAIL;
 	uintptr_t image_handle;
 
-	/* dw_mmc_init_params isn't used at all */
-	result = io_dev_init(dw_mmc_dev_handle, dw_mmc_init_params);
+	/* indicate to select normal partition in eMMC */
+	result = io_dev_init(dw_mmc_dev_handle, 0);
+	if (result == IO_SUCCESS) {
+		result = io_open(dw_mmc_dev_handle, spec, &image_handle);
+		if (result == IO_SUCCESS) {
+			/* INFO("Using DW MMC IO\n"); */
+			io_close(image_handle);
+		}
+	}
+	return result;
+}
+
+static int open_dw_mmc_boot(const uintptr_t spec)
+{
+	int result = IO_FAIL;
+	uintptr_t image_handle;
+
+	/* indicate to select boot partition in eMMC */
+	result = io_dev_init(dw_mmc_dev_handle, 1);
 	if (result == IO_SUCCESS) {
 		result = io_open(dw_mmc_dev_handle, spec, &image_handle);
 		if (result == IO_SUCCESS) {
@@ -200,7 +228,7 @@ void io_setup(void)
 	assert(io_result == IO_SUCCESS);
 
 	io_result = io_dev_open(bl1_mem_dev_con, bl1_mem_dev_spec,
-				&bl1_mem_dev_handle);
+				&loader_mem_dev_handle);
 	assert(io_result == IO_SUCCESS);
 
 	/* Ignore improbable errors in release builds */
@@ -235,70 +263,36 @@ int plat_get_image_source(const char *image_name, uintptr_t *dev_handle,
 	return result;
 }
 
-static int flush_bl1(void)
+#define FLUSH_BASE		(DDR_BASE + 0x100000)
+#define TEST_BASE		(DDR_BASE + 0x300000)
+
+static int flush_loader(void)
 {
-	uintptr_t bl1_image_spec, img_handle;
-	int i, result = IO_FAIL;
+	uintptr_t img_handle, spec;
+	int result = IO_FAIL;
 	size_t bytes_read, length;
 
-	result = plat_get_image_source(BL1_IMAGE_NAME, &dw_mmc_dev_handle,
-				       &bl1_image_spec);
-	result = io_open(dw_mmc_dev_handle, bl1_image_spec, &img_handle);
+	spec = 0;
+	result = plat_get_image_source(BOOT_EMMC_NAME, &dw_mmc_dev_handle, &spec);
+	result = io_open(dw_mmc_dev_handle, (uintptr_t)&boot_emmc_spec, &img_handle);
 	if (result != IO_SUCCESS) {
 		WARN("Failed to open memmap device\n");
 		goto exit;
 	}
-#if 0
-	result = io_read(img_handle, DDR_BASE, BL1_RO_SIZE, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < BL1_RO_SIZE)) {
-		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
-		goto exit;
-	}
-	for (i = 0; i < 0x10; i += 4) {
-		NOTICE("[0x%x]:0x%x   ", DDR_BASE + i, mmio_read_32(DDR_BASE + i));
-	}
-#endif
-	result = io_seek(img_handle, IO_SEEK_SET, MMC_BL1_BASE);
+	length = loader_mem_spec.length;
+	result = io_seek(img_handle, IO_SEEK_SET, MMC_LOADER_BASE + 0x800);
 	if (result != IO_SUCCESS) {
 		WARN("Failed to seek mmc device\n");
 		goto exit;
 	}
-	length = BL1_RO_LIMIT - BL1_RO_BASE;
-	result = io_write(img_handle, BL1_RO_BASE, length, &bytes_read);
+	result = io_write(img_handle, FLUSH_BASE, length, &bytes_read);
 	if ((result != IO_SUCCESS) || (bytes_read < length)) {
-		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
+		WARN("Failed to write '%s' file (%i)\n", LOADER_MEM_NAME, result);
 		goto exit;
-	}
-	result = io_seek(img_handle, IO_SEEK_SET, MMC_BL1_BASE);
-	if (result != IO_SUCCESS) {
-		WARN("Failed to seek mmc device\n");
-		goto exit;
-	}
-	result = io_read(img_handle, DDR_BASE, length, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < length)) {
-		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
-		goto exit;
-	}
-	for (i = 0; i < 0x10; i += 4) {
-		NOTICE("[0x%x]:0x%x   ", DDR_BASE + i, mmio_read_32(DDR_BASE + i));
-	}
-	result = io_seek(img_handle, IO_SEEK_SET, MMC_BL1_BASE);
-	if (result != IO_SUCCESS) {
-		WARN("Failed to seek mmc device\n");
-		goto exit;
-	}
-
-	result = io_read(img_handle, DDR_BASE, length, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < length)) {
-		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
-		goto exit;
-	}
-	for (i = 0; i < 0x10; i += 4) {
-		NOTICE("[0x%x]:0x%x   ", DDR_BASE + i, mmio_read_32(DDR_BASE + i));
 	}
 exit:
 	io_close(img_handle);
-	io_dev_close(bl1_mem_dev_handle);
+	io_dev_close(loader_mem_dev_handle);
 	return result;
 }
 
@@ -308,30 +302,34 @@ int flush_image(void)
 	int result = IO_FAIL;
 	size_t bytes_read, length;
 	uintptr_t img_handle;
+	int i;
 
-	result = plat_get_image_source(BL1_MEM_NAME, &bl1_mem_dev_handle,
+	result = plat_get_image_source(LOADER_MEM_NAME, &loader_mem_dev_handle,
 				       &bl1_image_spec);
 
-	result = io_open(bl1_mem_dev_handle, bl1_image_spec, &img_handle);
+	result = io_open(loader_mem_dev_handle, bl1_image_spec, &img_handle);
 	if (result != IO_SUCCESS) {
 		WARN("Failed to open memmap device\n");
 		goto exit;
 	}
-	length = BL1_RO_LIMIT - BL1_RO_BASE;
-	result = io_read(img_handle, DDR_BASE, length, &bytes_read);
+	length = loader_mem_spec.length;
+	result = io_read(img_handle, FLUSH_BASE, length, &bytes_read);
 	if ((result != IO_SUCCESS) || (bytes_read < length)) {
-		WARN("Failed to load '%s' file (%i)\n", BL1_MEM_NAME, result);
+		WARN("Failed to load '%s' file (%i)\n", LOADER_MEM_NAME, result);
 		goto exit;
 	}
+	/* clear flags */
+	for (i = 0; i < 0x10; i += 4)
+		mmio_write_32(FLUSH_BASE + 0x800 + i, 0);
 	io_close(img_handle);
 
-	result = flush_bl1();
+	result = flush_loader();
 	if (result != IO_SUCCESS) {
-		io_dev_close(bl1_mem_dev_handle);
+		io_dev_close(loader_mem_dev_handle);
 		return result;
 	}
 exit:
 	io_close(img_handle);
-	io_dev_close(bl1_mem_dev_handle);
+	io_dev_close(loader_mem_dev_handle);
 	return result;
 }
