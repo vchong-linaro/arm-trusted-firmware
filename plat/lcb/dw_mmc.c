@@ -640,11 +640,10 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 static int write_single_block(unsigned int lba, unsigned int buffer,
 			      unsigned int boot_partition)
 {
-	unsigned int bytes, desc_num, buf[4], data;
+	unsigned int bytes, resp_buf[4], data;
 	struct idmac_desc *desc = NULL;
-	int i, ret, last_idx, cmd_idx;
+	int ret, cmd_idx;
 
-	NOTICE("##lba:0x%x, buffer:0x%x, boot:%d\n", lba, buffer, boot_partition);
 	if (boot_partition) {
 		/* switch to boot partition 1 */
 		ret = mmc0_update_ext_csd(179, (1 << 3) | 1);
@@ -658,36 +657,24 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 	mmio_write_32(MMC0_BYTCNT, bytes);
 	mmio_write_32(MMC0_RINTSTS, ~0);
 
-	desc_num = (bytes + MMC_DMA_MAX_BUFFER_SIZE - 1) /
-		   MMC_DMA_MAX_BUFFER_SIZE;
-
 	desc = (struct idmac_desc *)MMC_DESC_BASE;
-	for (i = 0; i < desc_num; i++) {
-		(desc + i)->des0 = IDMAC_DES0_OWN | IDMAC_DES0_CH |
-				   IDMAC_DES0_DIC;
-		(desc + i)->des1 = IDMAC_DES1_BS1(MMC_DMA_MAX_BUFFER_SIZE);
-		/* buffer address */
-		(desc + i)->des2 = buffer + MMC_DMA_MAX_BUFFER_SIZE * i;
-		/* next descriptor address */
-		(desc + i)->des3 = MMC_DESC_BASE +
-				   (sizeof(struct idmac_desc) * (i + 1));
-	}
-	/* first descriptor */
+	desc->des0 = IDMAC_DES0_OWN | IDMAC_DES0_CH |
+			   IDMAC_DES0_DIC;
+	/* first & last descriptor */
 	desc->des0 |= IDMAC_DES0_FS;
-	/* last descriptor */
-	last_idx = desc_num - 1;
-	(desc + last_idx)->des0 |= IDMAC_DES0_LD;
-	(desc + last_idx)->des0 &= ~(IDMAC_DES0_DIC | IDMAC_DES0_CH);
-	(desc + last_idx)->des1 = IDMAC_DES1_BS1(bytes - (last_idx *
-				  MMC_DMA_MAX_BUFFER_SIZE));
+	desc->des0 |= IDMAC_DES0_LD;
+	desc->des0 &= ~(IDMAC_DES0_DIC | IDMAC_DES0_CH);
+	desc->des1 = IDMAC_DES1_BS1(bytes);
+	/* buffer address */
+	desc->des2 = buffer;
 	/* set next descriptor address as 0 */
-	(desc + last_idx)->des3 = 0;
+	desc->des3 = 0;
 
 	mmio_write_32(MMC0_DBADDR, MMC_DESC_BASE);
 
 	cmd_idx = 24;	/* write single block */
 	/* send write command */
-	ret = mmc0_send_cmd(cmd_idx, lba, buf);
+	ret = mmc0_send_cmd(cmd_idx, lba, resp_buf);
 	if (ret) {
 		NOTICE("failed to send CMD25\n");
 		mmio_write_32(MMC0_RINTSTS, ~0);
@@ -706,17 +693,17 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 	mmio_write_32(MMC0_RINTSTS, ~0);
 
 	do {
-		ret = mmc0_send_cmd(13, EMMC_FIX_RCA << 16, buf);
+		ret = mmc0_send_cmd(13, EMMC_FIX_RCA << 16, resp_buf);
 		if (ret) {
 			NOTICE("failed to send command 13\n");
 			return ret;
 		}
 
-		if (buf[0] & (1 << 7)) {
+		if (resp_buf[0] & (1 << 7)) {
 			NOTICE("maybe switch mmc mode error\n");
 			return -1;
 		}
-	} while ((buf[0] & 0x1e00) >> 9 == 7);
+	} while ((resp_buf[0] & 0x1e00) >> 9 == 7);
 	if (boot_partition) {
 		/* switch back to normal partition */
 		ret = mmc0_update_ext_csd(179, 1 << 3);
