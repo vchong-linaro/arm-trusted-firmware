@@ -95,7 +95,7 @@
 #define MMC_BASE			0x00000000
 #define MMC_SIZE			0x80000000
 #define MMC_LOADER_BASE			MMC_BASE		/* boot */
-#define MMC_BL1_SIZE			0x0000c800
+#define MMC_BL1_SIZE			0x00200000
 #define MMC_BL2_BASE			(MMC_BASE + 0x200000)	/* normal */
 
 #define ONCHIPROM_PARAM_BASE		(XG2RAM0_BASE + 0x700)
@@ -115,7 +115,7 @@
  * addresses.
  ******************************************************************************/
 #define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
-#define BL1_RO_LIMIT			(LOADER_RAM_BASE + MMC_BL1_SIZE)
+#define BL1_RO_LIMIT			(BL1_RO_BASE + 0xe000)
 #define BL1_RW_BASE			(BL1_RO_LIMIT)	/* 0xf980_d000 */
 #define BL1_RW_SIZE			0x001f0000
 #define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE)
