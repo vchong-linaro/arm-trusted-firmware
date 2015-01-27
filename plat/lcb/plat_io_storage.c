@@ -266,33 +266,92 @@ int plat_get_image_source(const char *image_name, uintptr_t *dev_handle,
 #define FLUSH_BASE		(DDR_BASE + 0x100000)
 #define TEST_BASE		(DDR_BASE + 0x300000)
 
+struct entry_head {
+	unsigned char	magic[8];
+	unsigned char	name[8];
+	unsigned int	start;	/* lba */
+	unsigned int	count;	/* lba */
+	unsigned int	flag;
+};
+
+static int parse_loader(void *buf, int num, struct entry_head *hd)
+{
+	if (hd == NULL)
+		return IO_FAIL;
+	memcpy((void *)hd, (void *)(FLUSH_BASE + 28), 140);
+	return IO_SUCCESS;
+}
+
 static int flush_loader(void)
 {
 	uintptr_t img_handle, spec;
 	int result = IO_FAIL;
 	size_t bytes_read, length;
+	struct entry_head entries[5];
+	ssize_t offset;
+	int i, fp;
+
+	result = parse_loader((void *)FLUSH_BASE, 5, entries);
+	if (result) {
+		WARN("failed to parse entries in loader image\n");
+		return result;
+	}
 
 	spec = 0;
-	result = plat_get_image_source(BOOT_EMMC_NAME, &dw_mmc_dev_handle, &spec);
-	result = io_open(dw_mmc_dev_handle, (uintptr_t)&boot_emmc_spec, &img_handle);
-	if (result != IO_SUCCESS) {
-		WARN("Failed to open memmap device\n");
-		goto exit;
+	for (i = 0, fp = 0; i < 5; i++) {
+		if (entries[i].flag) {
+			result = plat_get_image_source(BOOT_EMMC_NAME, &dw_mmc_dev_handle, &spec);
+			if (result) {
+				WARN("failed to open emmc boot partition\n");
+				return result;
+			}
+			if (i == 0)
+				offset = MMC_LOADER_BASE + 0x800;
+			else
+				offset = MMC_LOADER_BASE + 0x800 + entries[i].start * 512;
+
+			result = io_open(dw_mmc_dev_handle, (uintptr_t)&boot_emmc_spec, &img_handle);
+			if (result != IO_SUCCESS) {
+				WARN("Failed to open memmap device\n");
+				return result;
+			}
+		} else {
+			result = plat_get_image_source(NORMAL_EMMC_NAME, &dw_mmc_dev_handle, &spec);
+			if (result) {
+				WARN("failed to open emmc normal partition\n");
+				return result;
+			}
+			if (i == 2)
+				offset = MMC_BL2_BASE;
+			else
+				offset = MMC_LOADER_BASE + entries[i].start * 512;
+
+			result = io_open(dw_mmc_dev_handle, (uintptr_t)&normal_emmc_spec, &img_handle);
+			if (result != IO_SUCCESS) {
+				WARN("Failed to open memmap device\n");
+				return result;
+			}
+		}
+		length = entries[i].count * 512;
+
+		result = io_seek(img_handle, IO_SEEK_SET, offset);
+		if (result)
+			goto exit;
+
+		if (i < 3) {
+			result = io_write(img_handle, FLUSH_BASE + fp, length, &bytes_read);
+			if ((result != IO_SUCCESS) || (bytes_read < length)) {
+				WARN("Failed to write '%s' file (%i)\n", LOADER_MEM_NAME, result);
+				goto exit;
+			}
+		}
+		fp += entries[i].count * 512;
+
+		io_close(img_handle);
 	}
-	length = loader_mem_spec.length;
-	result = io_seek(img_handle, IO_SEEK_SET, MMC_LOADER_BASE + 0x800);
-	if (result != IO_SUCCESS) {
-		WARN("Failed to seek mmc device\n");
-		goto exit;
-	}
-	result = io_write(img_handle, FLUSH_BASE, length, &bytes_read);
-	if ((result != IO_SUCCESS) || (bytes_read < length)) {
-		WARN("Failed to write '%s' file (%i)\n", LOADER_MEM_NAME, result);
-		goto exit;
-	}
+	return result;
 exit:
 	io_close(img_handle);
-	io_dev_close(loader_mem_dev_handle);
 	return result;
 }
 
