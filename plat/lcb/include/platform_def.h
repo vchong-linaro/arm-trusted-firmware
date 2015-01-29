@@ -100,7 +100,7 @@
 
 #define ONCHIPROM_PARAM_BASE		(XG2RAM0_BASE + 0x700)
 #define LOADER_RAM_BASE			(XG2RAM0_BASE + 0x800)
-#define BL1_XG2RAM0_OFFSET		0x2000
+#define BL1_XG2RAM0_OFFSET		0x1000
 
 #define DDR_BASE			0x00000000
 
@@ -115,9 +115,9 @@
  * addresses.
  ******************************************************************************/
 #define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
-#define BL1_RO_LIMIT			(BL1_RO_BASE + 0xe000)
-#define BL1_RW_BASE			(BL1_RO_LIMIT)	/* 0xf980_d000 */
-#define BL1_RW_SIZE			0x001f0000
+#define BL1_RO_LIMIT			(XG2RAM0_BASE + 0x10000)
+#define BL1_RW_BASE			(BL1_RO_LIMIT)	/* 0xf981_0000 */
+#define BL1_RW_SIZE			0x00008000
 #define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE)
 
 /*******************************************************************************

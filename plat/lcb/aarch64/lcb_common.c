@@ -49,7 +49,7 @@
 					MT_DEVICE | MT_RW | MT_NS)
 
 #define MAP_ROM_PARAM	MAP_REGION_FLAT(XG2RAM0_BASE,			\
-					0x2000,				\
+					0x1000,				\
 					MT_DEVICE | MT_RW | MT_NS)
 
 /*

@@ -56,7 +56,7 @@ static uintptr_t dw_mmc_dev_handle;
 static const io_block_spec_t loader_mem_spec = {
 	/* l-loader.bin that contains bl1.bin */
 	.offset = LOADER_RAM_BASE,
-	.length = BL1_RO_LIMIT - LOADER_RAM_BASE + 0x800,
+	.length = BL1_RO_LIMIT - LOADER_RAM_BASE,
 };
 
 static const io_block_spec_t boot_emmc_spec = {
