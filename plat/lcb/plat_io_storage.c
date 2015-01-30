@@ -42,6 +42,8 @@
 #include <semihosting.h>	/* For FOPEN_MODE_... */
 #include <string.h>
 
+#define LOADER_MAX_ENTRIES		2
+
 static const io_dev_connector_t *bl1_mem_dev_con;
 static uintptr_t bl1_mem_dev_spec;
 static uintptr_t loader_mem_dev_handle;
@@ -51,7 +53,7 @@ static uintptr_t fip_dev_spec;
 static uintptr_t fip_dev_handle;
 static const io_dev_connector_t *dw_mmc_dev_con;
 static uintptr_t dw_mmc_dev_spec;
-static uintptr_t dw_mmc_dev_handle;
+static uintptr_t emmc_dev_handle;
 
 static const io_block_spec_t loader_mem_spec = {
 	/* l-loader.bin that contains bl1.bin */
@@ -109,17 +111,17 @@ static const struct plat_io_policy policies[] = {
 		open_loader_mem
 	}, {
 		BOOT_EMMC_NAME,
-		&dw_mmc_dev_handle,
+		&emmc_dev_handle,
 		(uintptr_t)&boot_emmc_spec,
 		open_dw_mmc_boot
 	}, {
 		NORMAL_EMMC_NAME,
-		&dw_mmc_dev_handle,
+		&emmc_dev_handle,
 		(uintptr_t)&normal_emmc_spec,
 		open_dw_mmc
 	}, {
 		FIP_IMAGE_NAME,
-		&dw_mmc_dev_handle,
+		&emmc_dev_handle,
 		(uintptr_t)&fip_block_spec,
 		open_dw_mmc
 	}, {
@@ -177,9 +179,9 @@ static int open_dw_mmc(const uintptr_t spec)
 	uintptr_t image_handle;
 
 	/* indicate to select normal partition in eMMC */
-	result = io_dev_init(dw_mmc_dev_handle, 0);
+	result = io_dev_init(emmc_dev_handle, 0);
 	if (result == IO_SUCCESS) {
-		result = io_open(dw_mmc_dev_handle, spec, &image_handle);
+		result = io_open(emmc_dev_handle, spec, &image_handle);
 		if (result == IO_SUCCESS) {
 			/* INFO("Using DW MMC IO\n"); */
 			io_close(image_handle);
@@ -194,9 +196,9 @@ static int open_dw_mmc_boot(const uintptr_t spec)
 	uintptr_t image_handle;
 
 	/* indicate to select boot partition in eMMC */
-	result = io_dev_init(dw_mmc_dev_handle, 1);
+	result = io_dev_init(emmc_dev_handle, 1);
 	if (result == IO_SUCCESS) {
-		result = io_open(dw_mmc_dev_handle, spec, &image_handle);
+		result = io_open(emmc_dev_handle, spec, &image_handle);
 		if (result == IO_SUCCESS) {
 			/* INFO("Using DW MMC IO\n"); */
 			io_close(image_handle);
@@ -224,7 +226,7 @@ void io_setup(void)
 	assert(io_result == IO_SUCCESS);
 
 	io_result = io_dev_open(dw_mmc_dev_con, dw_mmc_dev_spec,
-				&dw_mmc_dev_handle);
+				&emmc_dev_handle);
 	assert(io_result == IO_SUCCESS);
 
 	io_result = io_dev_open(bl1_mem_dev_con, bl1_mem_dev_spec,
@@ -291,46 +293,31 @@ static int flush_loader(void)
 	ssize_t offset;
 	int i, fp;
 
-	result = parse_loader((void *)FLUSH_BASE, 5, entries);
+	result = parse_loader((void *)FLUSH_BASE, LOADER_MAX_ENTRIES, entries);
 	if (result) {
 		WARN("failed to parse entries in loader image\n");
 		return result;
 	}
 
 	spec = 0;
-	for (i = 0, fp = 0; i < 5; i++) {
-		if (entries[i].flag) {
-			result = plat_get_image_source(BOOT_EMMC_NAME, &dw_mmc_dev_handle, &spec);
-			if (result) {
-				WARN("failed to open emmc boot partition\n");
-				return result;
-			}
-			if (i == 0)
-				offset = MMC_LOADER_BASE + 0x800;
-			else
-				offset = MMC_LOADER_BASE + 0x800 + entries[i].start * 512;
+	for (i = 0, fp = 0; i < LOADER_MAX_ENTRIES; i++) {
+		if (entries[i].flag != 1) {
+			WARN("Invalid flag in entry:0x%x\n", entries[i].flag);
+			return IO_NOT_SUPPORTED;
+		}
+		result = plat_get_image_source(BOOT_EMMC_NAME, &emmc_dev_handle,
+					       &spec);
+		if (result) {
+			WARN("failed to open emmc boot partition\n");
+			return result;
+		}
+		offset = MMC_LOADER_BASE + entries[i].start * 512;
 
-			result = io_open(dw_mmc_dev_handle, (uintptr_t)&boot_emmc_spec, &img_handle);
-			if (result != IO_SUCCESS) {
-				WARN("Failed to open memmap device\n");
-				return result;
-			}
-		} else {
-			result = plat_get_image_source(NORMAL_EMMC_NAME, &dw_mmc_dev_handle, &spec);
-			if (result) {
-				WARN("failed to open emmc normal partition\n");
-				return result;
-			}
-			if (i == 2)
-				offset = MMC_BL2_BASE;
-			else
-				offset = MMC_LOADER_BASE + entries[i].start * 512;
-
-			result = io_open(dw_mmc_dev_handle, (uintptr_t)&normal_emmc_spec, &img_handle);
-			if (result != IO_SUCCESS) {
-				WARN("Failed to open memmap device\n");
-				return result;
-			}
+		result = io_open(emmc_dev_handle, (uintptr_t)&boot_emmc_spec,
+				 &img_handle);
+		if (result != IO_SUCCESS) {
+			WARN("Failed to open memmap device\n");
+			return result;
 		}
 		length = entries[i].count * 512;
 
@@ -338,15 +325,15 @@ static int flush_loader(void)
 		if (result)
 			goto exit;
 
-		if (i < 3) {
-			result = io_write(img_handle, FLUSH_BASE + fp, length, &bytes_read);
-			if ((result != IO_SUCCESS) || (bytes_read < length)) {
-				WARN("Failed to write '%s' file (%i)\n", LOADER_MEM_NAME, result);
-				goto exit;
-			}
+		if (i == 1)
+			fp = (entries[1].start - entries[0].start) * 512;
+		result = io_write(img_handle, FLUSH_BASE + fp, length,
+				  &bytes_read);
+		if ((result != IO_SUCCESS) || (bytes_read < length)) {
+			WARN("Failed to write '%s' file (%i)\n",
+			     LOADER_MEM_NAME, result);
+			goto exit;
 		}
-		fp += entries[i].count * 512;
-
 		io_close(img_handle);
 	}
 	return result;
@@ -361,7 +348,6 @@ int flush_image(void)
 	int result = IO_FAIL;
 	size_t bytes_read, length;
 	uintptr_t img_handle;
-	int i;
 
 	result = plat_get_image_source(LOADER_MEM_NAME, &loader_mem_dev_handle,
 				       &bl1_image_spec);
@@ -377,9 +363,6 @@ int flush_image(void)
 		WARN("Failed to load '%s' file (%i)\n", LOADER_MEM_NAME, result);
 		goto exit;
 	}
-	/* clear flags */
-	for (i = 0; i < 0x10; i += 4)
-		mmio_write_32(FLUSH_BASE + 0x800 + i, 0);
 	io_close(img_handle);
 
 	result = flush_loader();
