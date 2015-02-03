@@ -45,6 +45,26 @@ struct ptentry {
 	char		name[EFI_NAMELEN];
 };
 
+typedef enum _vrl_id
+{
+	ID_NONE         = -3,
+	ID_FASTBOOT1    = -2,
+	ID_FASTBOOT2_BT = -1,  /*modify by y65256 for DTS2013081302132*/
+	ID_PTABLE       = 0,   /* 1~8 reserved for ptables with different emmc size */
+	ID_MCU_EXE      = 9,
+	ID_CP_OS        = 10,
+	ID_CP_NV        = 11,
+	ID_DSP_BIN      = 12,
+	ID_HIFI_BIN     = 13,
+	ID_TEE_OS       = 14,
+	ID_RECOVERY_IMG = 15,
+	ID_BOOT_IMG     = 16,
+	ID_FASTBOOT2    = 17, /*modify by y65256 for DTS2013072000181*/
+	ID_DTS_IMG      = 18, /*modify by l00130025 */
+	ID_BUTTOM
+} vrl_id;
+
+
 extern int get_partition(void);
 extern struct ptentry *find_ptn(const char *str);
 
