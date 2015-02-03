@@ -32,17 +32,39 @@
 #include <debug.h>
 #include <dw_mmc.h>
 #include <errno.h>
+#include <io_storage.h>
 #include <mmio.h>
 #include <partitions.h>
+#include <platform_def.h>
 #include <string.h>
+#include "lcb_private.h"
 
 #define EFI_ENTRIES		128
-#define EFI_NAMELEN		36
 #define EFI_ENTRY_SIZE		(sizeof(struct efi_entry))
 #define EFI_MBR_SIZE		512
 #define EFI_HEADER_SIZE		512
 #define EFI_TOTAL_SIZE		(EFI_MBR_SIZE + EFI_HEADER_SIZE +	\
 				EFI_ENTRY_SIZE * EFI_ENTRIES)
+
+struct efi_header {
+	char		signature[8];
+	uint32_t	revision;
+	uint32_t	size;
+	uint32_t	header_crc;
+	uint32_t	reserved;
+	uint64_t	current_lba;
+	uint64_t	backup_lba;
+	uint64_t	first_lba;
+	uint64_t	last_lba;
+	uint8_t		disk_uuid[16];
+	/* starting LBA of array of partition entries */
+	uint64_t	part_lba;
+	/* number of partition entries in array */
+	uint32_t	part_num;
+	/* size of a single partition entry (usually 128) */
+	uint32_t	part_size;
+	uint32_t	part_crc;
+};
 
 struct efi_entry {
 	uint8_t		type_uuid[16];
@@ -53,54 +75,141 @@ struct efi_entry {
 	uint16_t	name[EFI_NAMELEN];
 };
 
-struct ptentry {
-	char		name[16];
-	unsigned int	start;
-	unsigned int	length;
-	unsigned int	flags;
-	unsigned int	loadaddr;
-};
+static struct ptentry ptable[EFI_ENTRIES];
+static int entries;	/* partition entry entries */
 
-struct ptentry ptable[MAX_PARTITION_NUM] = {
-	{ "fastboot1", 		0x00000000, 0x00040000,	1, 0x00000000 },
-	{ "ptable", 		0x00000000, 0x00080000,	0, 0x00000000 },
-	{ "mcuimage",		0x00100000, 0x00040000, 0, 0xf6000100 },
-	{ "fastboot",		0x00200000, 0x00400000, 0, 0x00000000 },
-	{ "securetystorage",	0x06800000, 0x02000000, 0, 0x00000000 },
-	{ "teeos",		0x15e00000, 0x00400000, 0, 0xfff80000 },
-	{ "sensorhub",		0x16400000, 0x01000000, 0, 0x00000000 },
-	{ "boot",		0x18000000, 0x01800000, 0, 0x00000000 },
-	{ "recovery",		0x19800000, 0x02000000, 0, 0x00000000 },
-	{ "dtimage",		0x1b800000, 0x02000000, 0, 0x00000000 },
-	{ "system",		0x37800000, 0x70000000, 0, 0x00000000 },
-	{ "userdata",		0xd7800000, 0xe8800000, 0, 0x00000000 },
-};
-
-struct ptentry *get_partition_entry(const char *name)
+static void dump_entries(void)
 {
-	struct ptentry *p = NULL;
-	int i = 0;
+	int i;
 
-	for (i = 0; i < sizeof(ptable) / sizeof(struct ptentry); i++) {
-		if (!strncmp(ptable[i].name, name, 16)) {
-			p = &ptable[i];
+	VERBOSE("Partition table with %d entries:\n", entries);
+	for (i = 0; i < entries; i++) {
+		VERBOSE("%s %llx-%llx\n", ptable[i].name,
+			ptable[i].start,
+			ptable[i].start + ptable[i].length - 4);
+	}
+}
+
+static int convert_ascii_string(uint16_t *str_in, uint8_t *str_out)
+{
+	uint8_t *name = (uint8_t *)str_in;
+	int i;
+
+	if (name[0] == '\0' || !str_in || !str_out)
+		return -EINVAL;
+	for (i = 1; i < (EFI_NAMELEN << 1); i += 2) {
+		if (name[i] != '\0')
+			return -EINVAL;
+	}
+	for (i = 0; i < (EFI_NAMELEN << 1); i += 2) {
+		str_out[i >> 1] = name[i];
+		if (name[i] == '\0')
+			break;
+	}
+	return 0;
+}
+
+static int parse_entry(uintptr_t buf)
+{
+	struct efi_entry *entry = (struct efi_entry *)buf;
+	int ret;
+
+	/* exhaused partition entry */
+	if ((entry->first_lba == 0) && (entry->last_lba == 0))
+		return 1;
+	ret = convert_ascii_string(entry->name, (uint8_t *)ptable[entries].name);
+	if (ret < 0)
+		return ret;
+	ptable[entries].start = entry->first_lba * 512;
+	ptable[entries].length = (entry->last_lba - entry->first_lba + 1) * 512;
+	entries++;
+	return 0;
+}
+
+struct ptentry *find_ptn(const char *str)
+{
+	struct ptentry *ptn = 0;
+	int i;
+
+	for (i = 0; i < entries; i++) {
+		if (!strcmp(ptable[i].name, str)) {
+			ptn = &ptable[i];
 			break;
 		}
 	}
-	return p;
+	return ptn;
 }
 
 int get_partition(void)
 {
-	struct ptentry *p = NULL;
-	int ret;
+	int result = IO_FAIL;
+	int i, ret, num_entries;
+	size_t bytes_read;
+	uintptr_t emmc_dev_handle, spec, img_handle;
+	unsigned int buf[MMC_BLOCK_SIZE >> 2];
+	struct efi_header *hd = NULL;
 
-	p = get_partition_entry("ptable");
-	if (!p) {
-		NOTICE("failed to find \"ptable\" partition\n");
-		return -EFAULT;
+	result = plat_get_image_source(NORMAL_EMMC_NAME, &emmc_dev_handle,
+				       &spec);
+	if (result) {
+		WARN("failed to open eMMC normal partition\n");
+		return result;
 	}
-	/* load 256KB into address 0x0 */
-	ret = mmc0_read(0, 0x4400, 0, 0);
-	return ret;
+	result = io_open(emmc_dev_handle, spec, &img_handle);
+	if (result != IO_SUCCESS) {
+		WARN("Failed to open eMMC device\n");
+		return result;
+	}
+	result = io_seek(img_handle, IO_SEEK_SET, 0);
+	if (result)
+		goto exit;
+	result = io_read(img_handle, (uintptr_t)buf, EFI_MBR_SIZE,
+			 &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < EFI_MBR_SIZE)) {
+		WARN("Failed to read eMMC (%i)\n", result);
+		goto exit;
+	}
+	/* check the magic number in last word */
+	if (buf[(MMC_BLOCK_SIZE >> 2) - 1] != 0xaa550000) {
+		WARN("Can't find MBR protection information\n");
+		goto exit;
+	}
+
+	result = io_read(img_handle, (uintptr_t)buf, EFI_HEADER_SIZE,
+			 &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < EFI_HEADER_SIZE)) {
+		WARN("Failed to read eMMC (%i)\n", result);
+		goto exit;
+	}
+	hd = (struct efi_header *)((uintptr_t)buf);
+	if (strncmp(hd->signature, "EFI PART", 8)) {
+		WARN("Failed to find partition table\n");
+		goto exit;
+	}
+	num_entries = hd->part_num;
+	for (i = 0; i < num_entries; i++) {
+		result = io_read(img_handle, (uintptr_t)buf, EFI_HEADER_SIZE,
+				 &bytes_read);
+		if ((result != IO_SUCCESS) || (bytes_read < EFI_HEADER_SIZE)) {
+			WARN("Failed to read eMMC (%i)\n", result);
+			goto exit;
+		}
+		/* each header contains four partition entries */
+		ret = parse_entry((uintptr_t)buf);
+		if (ret)
+			break;
+		ret = parse_entry((uintptr_t)buf + EFI_ENTRY_SIZE);
+		if (ret)
+			break;
+		ret = parse_entry((uintptr_t)buf + EFI_ENTRY_SIZE * 2);
+		if (ret)
+			break;
+		ret = parse_entry((uintptr_t)buf + EFI_ENTRY_SIZE * 3);
+		if (ret)
+			break;
+	}
+	io_close(img_handle);
+	dump_entries();
+exit:
+	return result;
 }

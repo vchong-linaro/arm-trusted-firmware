@@ -32,9 +32,21 @@
 #ifndef __PARTITIONS_H__
 #define __PARTITIONS_H__
 
-#define MAX_PARTITION_NUM		48
+#define MAX_PARTITION_NUM		128
+#define EFI_NAMELEN		36
+
+struct ptentry {
+	unsigned int	start;
+	unsigned int	length;
+	unsigned int	flags;
+	unsigned int	loadaddr;
+	unsigned int	loadsize;      /*real data size of this partition, must smaller than "length"*/
+	int		id;    
+	char		name[EFI_NAMELEN];
+};
 
 extern int get_partition(void);
+extern struct ptentry *find_ptn(const char *str);
 
 #endif /* __PARTITIONS_H__ */
 
