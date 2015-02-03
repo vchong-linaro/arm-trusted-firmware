@@ -57,6 +57,9 @@
 
 #define PERI_BASE				0xf7030000
 #define PERI_SC_PERIPH_CTRL2			(PERI_BASE + 0x004)
+#define PERI_SC_PERIPH_CTRL4			(PERI_BASE + 0x00c)
+#define PERI_SC_PERIPH_CTRL5			(PERI_BASE + 0x010)
+#define PERI_SC_PERIPH_CTRL8			(PERI_BASE + 0x018)
 #define PERI_SC_PERIPH_CTRL13			(PERI_BASE + 0x028)
 #define PERI_SC_PERIPH_CTRL14			(PERI_BASE + 0x02c)
 #define PERI_SC_DDR_CTRL0			(PERI_BASE + 0x050)
@@ -76,12 +79,29 @@
 #define PCLK_TIMER1				(1 << 16)
 #define PCLK_TIMER0				(1 << 15)
 
+#define PERIPH_CTRL4_OTG_PHY_SEL		(1 << 21)
+#define PERIPH_CTRL4_PICO_VBUSVLDEXTSEL		(1 << 11)
+#define PERIPH_CTRL4_PICO_VBUSVLDEXT		(1 << 10)
+#define PERIPH_CTRL4_PICO_SIDDQ			(1 << 6)
+#define PERIPH_CTRL4_FPGA_EXT_PHY_SEL		(1 << 3)
+
+#define PERIPH_CTRL5_PICOPHY_BC_MODE		(1 << 5)
+
 #define PERIPH_CTRL14_FM_CLK_SEL_SHIFT		8
 #define PERIPH_CTRL14_FM_EN			(1 << 0)
 
+#define PERI_CLK_USBOTG				(1 << 4)
 #define PERI_CLK_MMC2				(1 << 2)
 #define PERI_CLK_MMC1				(1 << 1)
 #define PERI_CLK_MMC0				(1 << 0)
+
+#define PERI_RST_USBOTG_32K			(1 << 7)
+#define PERI_RST_USBOTG				(1 << 6)
+#define PERI_RST_PICOPHY			(1 << 5)
+#define PERI_RST_USBOTG_BUS			(1 << 4)
+#define PERI_RST_MMC2				(1 << 2)
+#define PERI_RST_MMC1				(1 << 1)
+#define PERI_RST_MMC0				(1 << 0)
 
 #define PMCTRL_BASE				0xf7032000
 #define PMCTRL_ACPUPLLCTRL			(PMCTRL_BASE + 0x000)
