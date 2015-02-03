@@ -73,7 +73,7 @@ static const io_block_spec_t normal_emmc_spec = {
 
 static const io_block_spec_t fip_block_spec = {
 	.offset = MMC_BL2_BASE,
-	.length = MMC_SIZE - (MMC_BL2_BASE - MMC_BASE)
+	.length = 0x1000000,	/* 16MB */
 };
 
 static const io_file_spec_t bl2_file_spec = {

@@ -117,20 +117,20 @@
 #define BL1_RO_BASE			(XG2RAM0_BASE + BL1_XG2RAM0_OFFSET)
 #define BL1_RO_LIMIT			(XG2RAM0_BASE + 0x10000)
 #define BL1_RW_BASE			(BL1_RO_LIMIT)	/* 0xf981_0000 */
-#define BL1_RW_SIZE			0x00008000
-#define BL1_RW_LIMIT			(BL1_RW_BASE + BL1_RW_SIZE)
+#define BL1_RW_SIZE			(BL31_LIMIT - BL1_RW_BASE)
+#define BL1_RW_LIMIT			(BL31_LIMIT)
 
 /*******************************************************************************
  * BL2 specific defines.
  ******************************************************************************/
 /* Set it in DDR first. If necessary, we can set them into SRAM again. */
-#define BL2_BASE			(BL1_RW_BASE + 0x30000)	/* 0xf984_0000 */
+#define BL2_BASE			(BL1_RW_BASE + 0x8000)	/* 0xf981_8000 */
 #define BL2_LIMIT			(BL2_BASE + 0x40000)
 
 /*******************************************************************************
  * BL3-1 specific defines.
  ******************************************************************************/
-#define BL31_BASE			(BL2_LIMIT)	/* 0xf988_0000 */
+#define BL31_BASE			(BL2_LIMIT)	/* 0xf985_8000 */
 #define BL31_LIMIT			(BL31_BASE + 0x40000)
 
 /*******************************************************************************
