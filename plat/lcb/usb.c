@@ -658,9 +658,6 @@ static void rx_cmd(void)
 	req->length = RX_REQ_LEN;
 	req->complete = usb_rx_cmd_complete;
 	usb_queue_req(&ep1out, req);
-	/* BEGIN PN:DTS2014072503506, Added by g00273198, 2014/7/25 */
-	memset(cmdbuf, 0, strlen(cmdbuf));
-	/* END PN:DTS2014072503506, Added by g00273198, 2014/7/25 */
 }
 
 static void rx_data(void)
@@ -1402,7 +1399,6 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 	if(memcmp(cmdbuf, (void *)"reboot", 6) == 0) {
 		tx_status("OKAY");
 		INFO("It's reboot command\n");
-		for (;;);
 #if 0
 		emmc_set_card_sleep();
 		/* 0x10 means reboot boot defined in preboot.c*/
