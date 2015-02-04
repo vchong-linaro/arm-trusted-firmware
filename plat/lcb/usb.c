@@ -65,9 +65,9 @@ struct usb_config_bundle {
 	struct usb_interface_descriptor interface;
 	struct usb_endpoint_descriptor ep1;
 	struct usb_endpoint_descriptor ep2;
-};
+} __attribute__ ((packed));
 
-static setup_packet ctrl_req
+static setup_packet ctrl_req[NUM_ENDPOINTS]
 __attribute__ ((section("tzfw_coherent_mem")));
 static unsigned char ctrl_resp[2]
 __attribute__ ((section("tzfw_coherent_mem")));
@@ -197,7 +197,9 @@ static void reset_endpoints(void)
 	mmio_write_32(DAINTMSK, 0x00010001);
 
 	/* EP0 OUT Transfer Size:64 Bytes, 1 Packet, 3 Setup Packet, Read to receive setup packet*/
-	mmio_write_32(DOEPTSIZ0, 0x60080040);
+	data = DOEPTSIZ0_SUPCNT(3) | DOEPTSIZ0_PKTCNT |
+		(64 << DOEPTSIZ0_XFERSIZE_SHIFT);
+	mmio_write_32(DOEPTSIZ0, data);
 	//notes that:the compulsive conversion is expectable.
 	dma_desc_ep0.status.b.bs = 0x3;
 	dma_desc_ep0.status.b.mtrf = 0;
@@ -252,8 +254,8 @@ static int usb_drv_request_endpoint(int type, int dir)
 
 void usb_drv_release_endpoint(int ep)
 {
-	ep = ep & 0x7f;
-	if (ep < 1 || ep > USB_NUM_ENDPOINTS)
+	ep = ep % NUM_ENDPOINTS;
+	if (ep < 1 || ep > NUM_ENDPOINTS)
 		return;
 
 	endpoints[ep].active = 0;
@@ -423,7 +425,7 @@ int usb_drv_send_nonblocking(int endpoint, const void *ptr, int len)
 {
 	VERBOSE("%s, endpoint = %d, ptr = 0x%x, Len=%d.\n",
 		__func__, endpoint, ptr, len);
-	ep_send(endpoint & 0x7f, ptr, len);
+	ep_send(endpoint % NUM_ENDPOINTS, ptr, len);
 	return 0;
 }
 
@@ -782,53 +784,75 @@ void usb_handle_control_request(setup_packet* req)
 	int size = -1;
 	int maxpacket;
 	unsigned int data;
+	struct usb_endpoint_descriptor epx;
+	struct usb_config_bundle const_bundle = {
+		.config = {
+			.bLength	= sizeof(struct usb_config_descriptor),
+			.bDescriptorType	= USB_DT_CONFIG,
+			.wTotalLength	= sizeof(struct usb_config_descriptor) +
+				sizeof(struct usb_interface_descriptor) +
+				sizeof(struct usb_endpoint_descriptor) *
+				USB_NUM_ENDPOINTS,
+			.bNumInterfaces		= 1,
+			.bConfigurationValue	= 1,
+			.iConfiguration		= 0,
+			.bmAttributes		= USB_CONFIG_ATT_ONE,
+			.bMaxPower		= 0x80
+		},
+		.interface = {
+			.bLength	= sizeof(struct usb_interface_descriptor),
+			.bDescriptorType	= USB_DT_INTERFACE,
+			.bInterfaceNumber	= 0,
+			.bAlternateSetting	= 0,
+			.bNumEndpoints		= USB_NUM_ENDPOINTS,
+			.bInterfaceClass	= USB_CLASS_VENDOR_SPEC,
+			.bInterfaceSubClass	= 0x42,
+			.bInterfaceProtocol	= 0x03,
+			.iInterface		= 0
+		}
+	};
 
-	config_bundle.config.bLength = sizeof(struct usb_config_descriptor);
-	config_bundle.config.bDescriptorType = USB_DT_CONFIG;
-	config_bundle.config.wTotalLength = sizeof(struct usb_config_descriptor) +
-		sizeof(struct usb_interface_descriptor) +
-		sizeof(struct usb_endpoint_descriptor) * USB_NUM_ENDPOINTS;
-	config_bundle.config.bNumInterfaces = 1;
-	config_bundle.config.bConfigurationValue = 1;
-	config_bundle.config.iConfiguration = 0;
-	config_bundle.config.bmAttributes = USB_CONFIG_ATT_ONE;
-	config_bundle.config.bMaxPower = 0x80;
-	config_bundle.interface.bLength = sizeof(struct usb_interface_descriptor);
-	config_bundle.interface.bDescriptorType = USB_DT_INTERFACE;
-	config_bundle.interface.bInterfaceNumber = 0;
-	config_bundle.interface.bAlternateSetting = 0;
-	config_bundle.interface.bNumEndpoints = USB_NUM_ENDPOINTS;
-	config_bundle.interface.bInterfaceClass = USB_CLASS_VENDOR_SPEC;
-	config_bundle.interface.bInterfaceSubClass = 0x42;
-	config_bundle.interface.bInterfaceProtocol = 0x03;
-	config_bundle.interface.iInterface = 0;
-	config_bundle.ep1.bLength = sizeof(struct usb_endpoint_descriptor);
-	config_bundle.ep1.bDescriptorType = USB_DT_ENDPOINT;
-	config_bundle.ep1.bEndpointAddress = 0x81;
-	config_bundle.ep1.bmAttributes = USB_ENDPOINT_XFER_BULK;
-	config_bundle.ep1.wMaxPacketSize = 0;
-	config_bundle.ep1.bInterval = 0;
-	config_bundle.ep2.bLength = sizeof(struct usb_endpoint_descriptor);
-	config_bundle.ep2.bDescriptorType = USB_DT_ENDPOINT;
-	config_bundle.ep2.bEndpointAddress = 0x01;
-	config_bundle.ep2.bmAttributes = USB_ENDPOINT_XFER_BULK;
-	config_bundle.ep2.wMaxPacketSize = 0;
-	config_bundle.ep2.bInterval = 1;
+	/* avoid to hang on accessing unaligned memory */
+	struct usb_endpoint_descriptor const_ep1 = {
+		.bLength	= sizeof(struct usb_endpoint_descriptor),
+		.bDescriptorType	= USB_DT_ENDPOINT,
+		.bEndpointAddress	= 0x81,
+		.bmAttributes		= USB_ENDPOINT_XFER_BULK,
+		.wMaxPacketSize		= 0,
+		.bInterval		= 0
+	};
 
-	device_descriptor.bLength = sizeof(struct usb_device_descriptor);
-	device_descriptor.bDescriptorType = USB_DT_DEVICE;
-	device_descriptor.bcdUSB = 0x200;
-	device_descriptor.bDeviceClass = 0;
-	device_descriptor.bDeviceSubClass = 0;
-	device_descriptor.bDeviceProtocol = 0;
-	device_descriptor.bMaxPacketSize0 = 0x40;
-	device_descriptor.idVendor = 0x18d1;
-	device_descriptor.idProduct = 0xd00d;
-	device_descriptor.bcdDevice = 0x0100;
-	device_descriptor.iManufacturer = 1;
-	device_descriptor.iProduct = 2;
-	device_descriptor.iSerialNumber = 3;
-	device_descriptor.bNumConfigurations = 1;
+	struct usb_endpoint_descriptor const_ep2 = {
+		.bLength	= sizeof(struct usb_endpoint_descriptor),
+		.bDescriptorType	= USB_DT_ENDPOINT,
+		.bEndpointAddress	= 0x01,
+		.bmAttributes		= USB_ENDPOINT_XFER_BULK,
+		.wMaxPacketSize		= 0,
+		.bInterval		= 1
+	};
+
+	struct usb_device_descriptor const_device = {
+		.bLength		= sizeof(struct usb_device_descriptor),
+		.bDescriptorType	= USB_DT_DEVICE,
+		.bcdUSB			= 0x0200,
+		.bDeviceClass		= 0,
+		.bDeviceClass		= 0,
+		.bDeviceProtocol	= 0,
+		.bMaxPacketSize0	= 0x40,
+		.idVendor		= 0x18d1,
+		.idProduct		= 0xd00d,
+		.bcdDevice		= 0x0100,
+		.iManufacturer		= 1,
+		.iProduct		= 2,
+		.iSerialNumber		= 3,
+		.bNumConfigurations	= 1
+	};
+
+	memcpy(&config_bundle, &const_bundle, sizeof(struct usb_config_bundle));
+	memcpy(&config_bundle.ep1, &const_ep1, sizeof(struct usb_endpoint_descriptor));
+	memcpy(&config_bundle.ep2, &const_ep2, sizeof(struct usb_endpoint_descriptor));
+	memcpy(&device_descriptor, &const_device,
+		sizeof(struct usb_device_descriptor));
 
 	VERBOSE("type=%x req=%x val=%x idx=%x len=%x (%s).\n",
 		req->type, req->request, req->value, req->index,
@@ -863,6 +887,7 @@ void usb_handle_control_request(setup_packet* req)
 		break;
 
 	case USB_REQ_GET_DESCRIPTOR:
+		VERBOSE("USB_REQ_GET_DESCRIPTOR: 0x%x\n", req->value >> 8);
 		switch (req->value >> 8) {
 		case USB_DT_DEVICE:
 			addr = &device_descriptor;
@@ -879,8 +904,13 @@ void usb_handle_control_request(setup_packet* req)
 				maxpacket = usb_drv_port_speed() ? 64 : USB_BLOCK_HIGH_SPEED_SIZE;
 				config_bundle.config.bDescriptorType = USB_DT_OTHER_SPEED_CONFIG;
 			}
-			config_bundle.ep1.wMaxPacketSize = maxpacket;
-			config_bundle.ep2.wMaxPacketSize = maxpacket;
+			/* avoid hang when access unaligned structure */
+			memcpy(&epx, &config_bundle.ep1, sizeof(struct usb_endpoint_descriptor));
+			epx.wMaxPacketSize = maxpacket;
+			memcpy(&config_bundle.ep1, &epx, sizeof(struct usb_endpoint_descriptor));
+			memcpy(&epx, &config_bundle.ep2, sizeof(struct usb_endpoint_descriptor));
+			epx.wMaxPacketSize = maxpacket;
+			memcpy(&config_bundle.ep2, &epx, sizeof(struct usb_endpoint_descriptor));
 			addr = &config_bundle;
 			size = sizeof(config_bundle);
 			VERBOSE("Get config descriptor.\n");
@@ -1013,7 +1043,7 @@ static void usb_poll(void)
 
 	if ((ints & 0xc3010) == 0)
 		return;
-	INFO("%s, %d, GINTSTS:%x, DAINT:%x\n", __func__, __LINE__, ints, mmio_read_32(DAINT));
+	//INFO("%s, %d, GINTSTS:%x, DAINT:%x\n", __func__, __LINE__, ints, mmio_read_32(DAINT));
 	dump_usb_reg();
 	/*
 	 * bus reset
@@ -1076,8 +1106,8 @@ static void usb_poll(void)
 		epints = mmio_read_32(DIEPINT0);
 		mmio_write_32(DIEPINT0, epints);
 
-		VERBOSE("IN EP event,ints:0x%x, DIEPINT0:%x, DAINT:%x, DAINTMSK:%x.\n",
-			ints, epints, mmio_read_32(DAINT), mmio_read_32(DAINTMSK));
+		//VERBOSE("IN EP event,ints:0x%x, DIEPINT0:%x, DAINT:%x, DAINTMSK:%x.\n",
+		//	ints, epints, mmio_read_32(DAINT), mmio_read_32(DAINTMSK));
 		if (epints & 0x1) { /* Transfer Completed Interrupt (XferCompl) */
 			VERBOSE("TX completed.DIEPTSIZ(0) = 0x%x.\n", mmio_read_32(DIEPTSIZ0));
 			/*FIXME,Maybe you can use bytes*/
@@ -1116,8 +1146,8 @@ static void usb_poll(void)
 		/* indicates the status of an endpoint
 		 * with respect to USB- and AHB-related events. */
 		epints = mmio_read_32(DOEPINT(0));
-		VERBOSE("OUT EP event,ints:0x%x, DOEPINT0:%x, DAINT:%x, DAINTMSK:%x.\n",
-			ints, epints, mmio_read_32(DAINT), mmio_read_32(DAINTMSK));
+		//VERBOSE("OUT EP event,ints:0x%x, DOEPINT0:%x, DAINT:%x, DAINTMSK:%x.\n",
+		//	ints, epints, mmio_read_32(DAINT), mmio_read_32(DAINTMSK));
 		if (epints) {
 			mmio_write_32(DOEPINT(0), epints);
 			/* Transfer completed */
@@ -1154,7 +1184,9 @@ static void usb_poll(void)
 
 			/* Make sure EP0 OUT is set up to accept the next request */
 			/* memset(p_ctrlreq, 0, NUM_ENDPOINTS*8); */
-			mmio_write_32(DOEPTSIZ0, 0x60080040);
+			data = DOEPTSIZ0_SUPCNT(3) | DOEPTSIZ0_PKTCNT |
+				(64 << DOEPTSIZ0_XFERSIZE_SHIFT);
+			mmio_write_32(DOEPTSIZ0, data);
 			/*
 			 * IN Token Received When TxFIFO is Empty (INTknTXFEmp)
 			 * Indicates that an IN token was received when the associated TxFIFO (periodic/nonperiodic)
@@ -1280,13 +1312,17 @@ static void dvc_and_picophy_init_chip(void)
 
 int init_usb(void)
 {
+	static int init_flag = 0;
 	uint32_t	data;
 
-	memset(&ctrl_req, 0, sizeof(setup_packet));
-	memset(&ctrl_resp, 0, 2);
-	memset(&dma_desc, 0, sizeof(struct dwc_otg_dev_dma_desc));
-	memset(&dma_desc_ep0, 0, sizeof(struct dwc_otg_dev_dma_desc));
-	memset(&dma_desc_in, 0, sizeof(struct dwc_otg_dev_dma_desc));
+	if (init_flag == 0) {
+		memset(&ctrl_req, 0, sizeof(setup_packet));
+		memset(&ctrl_resp, 0, 2);
+		memset(&endpoints, 0, sizeof(struct ep_type) * NUM_ENDPOINTS);
+		memset(&dma_desc, 0, sizeof(struct dwc_otg_dev_dma_desc));
+		memset(&dma_desc_ep0, 0, sizeof(struct dwc_otg_dev_dma_desc));
+		memset(&dma_desc_in, 0, sizeof(struct dwc_otg_dev_dma_desc));
+	}
 
 	VERBOSE("Pico PHY and DVC init start.\n");
 

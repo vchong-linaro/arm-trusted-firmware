@@ -458,10 +458,33 @@ struct usb_request {
 #define DXEPINT_XFERCOMPL               (1 << 0)
 
 #define DOEPTSIZ(x) 		(DWC_OTG_BASE + 0xB10 + 0x20 * (x))
+#define DXEPTSIZ_MC_MASK		(0x3 << 29)
+#define DXEPTSIZ_MC_SHIFT		29
+#define DXEPTSIZ_MC_LIMIT		0x3
+#define DXEPTSIZ_MC(_x)			((_x) << 29)
+#define DXEPTSIZ_PKTCNT_MASK		(0x3ff << 19)
+#define DXEPTSIZ_PKTCNT_SHIFT		19
+#define DXEPTSIZ_PKTCNT_LIMIT		0x3ff
+#define DXEPTSIZ_PKTCNT_GET(_v)		(((_v) >> 19) & 0x3ff)
+#define DXEPTSIZ_PKTCNT(_x)		((_x) << 19)
+#define DXEPTSIZ_XFERSIZE_MASK		(0x7ffff << 0)
+#define DXEPTSIZ_XFERSIZE_SHIFT		0
+#define DXEPTSIZ_XFERSIZE_LIMIT		0x7ffff
+#define DXEPTSIZ_XFERSIZE_GET(_v)	(((_v) >> 0) & 0x7ffff)
+#define DXEPTSIZ_XFERSIZE(_x)		((_x) << 0)
+
 #define DOEPDMA(x)  		(DWC_OTG_BASE + 0xB14 + 0x20 * (x))
 #define DOEPCTL0    		(DWC_OTG_BASE + 0xB00)
 #define DOEPINT0    		(DWC_OTG_BASE + 0xB08)
 #define DOEPTSIZ0   		(DWC_OTG_BASE + 0xB10)
+#define DOEPTSIZ0_SUPCNT_MASK		(0x3 << 29)
+#define DOEPTSIZ0_SUPCNT_SHIFT		29
+#define DOEPTSIZ0_SUPCNT_LIMIT		0x3
+#define DOEPTSIZ0_SUPCNT(_x)		((_x) << 29)
+#define DOEPTSIZ0_PKTCNT		(1 << 19)
+#define DOEPTSIZ0_XFERSIZE_MASK		(0x7f << 0)
+#define DOEPTSIZ0_XFERSIZE_SHIFT	0
+
 #define DOEPDMA0    		(DWC_OTG_BASE + 0xB14)
 #define DOEPCTL1    		(DWC_OTG_BASE + 0xB20)
 #define DOEPINT1    		(DWC_OTG_BASE + 0xB28)
@@ -659,7 +682,7 @@ struct usb_device_descriptor {
         unsigned char  iProduct;
         unsigned char  iSerialNumber;
         unsigned char  bNumConfigurations;
-};
+} __attribute__ ((packed));
 
 #define USB_DT_DEVICE_SIZE              18
 
@@ -706,7 +729,7 @@ struct usb_config_descriptor {
        unsigned char  iConfiguration;
        unsigned char  bmAttributes;
        unsigned char  bMaxPower;
-};
+} __attribute__((packed));
 
 #define USB_DT_CONFIG_SIZE              9
 
@@ -724,7 +747,7 @@ struct usb_string_descriptor {
         unsigned char  bDescriptorType;
 
         unsigned short wString[16];             /* UTF-16LE encoded */
-};
+} __attribute__((packed));
 
 /*-------------------------------------------------------------------------*/
 /* USB_DT_INTERFACE: Interface descriptor */
@@ -754,7 +777,7 @@ struct usb_endpoint_descriptor {
         unsigned char  bmAttributes;
         unsigned short wMaxPacketSize;
         unsigned char  bInterval;
-};
+} __attribute__ ((packed));
 
 #define USB_DT_ENDPOINT_SIZE            7
 #define USB_DT_ENDPOINT_AUDIO_SIZE      9       /* Audio extension */
