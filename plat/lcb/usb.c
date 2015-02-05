@@ -1432,29 +1432,51 @@ static void fb_download(char *cmdbuf)
 	if (!flash_ptn) {
 		bytes = sprintf(response, "FAIL%s",
 				"invalid partition");
+		response[bytes] = '\0';
+		tx_status(response);
+		rx_cmd();
 	} else {
 		rx_addr = FB_DOWNLOAD_BASE;
 		rx_length = strtoul(cmdbuf + 9, NULL, 16);
 		if (rx_length > FB_MAX_FILE_SIZE) {
 			bytes = sprintf(response, "FAIL%s",
 					"file is too large");
+			response[bytes] = '\0';
+			tx_status(response);
+			rx_cmd();
 		} else {
-			bytes = sprintf(response, "DATA");
-			NOTICE("start:0x%x, length:0x%x\n", rx_addr, rx_length);
+			bytes = sprintf(response, "DATA%08x",
+					rx_length);
+			NOTICE("start:0x%x, length:0x%x, res:%s\n", rx_addr, rx_length, response);
+			response[bytes] = '\0';
+			tx_status(response);
+			rx_data();
 		}
 	}
-	response[bytes] = '\0';
-	tx_status(response);
-	rx_cmd();
+}
+
+static void fb_flash(char *cmdbuf)
+{
+#if 0
+	int i;
+
+	for (i = 0; i < 0x20000; i += 16) {
+		NOTICE("[%x] %x %x %x %x\n", FB_DOWNLOAD_BASE + i,
+			mmio_read_32(FB_DOWNLOAD_BASE + i),
+			mmio_read_32(FB_DOWNLOAD_BASE + i + 4),
+			mmio_read_32(FB_DOWNLOAD_BASE + i + 8),
+			mmio_read_32(FB_DOWNLOAD_BASE + i + 12));
+	}
+#endif
 }
 
 static void usb_rx_cmd_complete(unsigned actual, int stat)
 {
 #define TX_DATA_BUFFER_SIZE    2
 #define MAX_RESPONSE_NUMBER	65
+#if 0
 	unsigned int image_addr_offset = 0;
 	int ret = 0;
-#if 0
 	unsigned int tx_data_buf[TX_DATA_BUFFER_SIZE];
 	unsigned int dump_addr = 0;
 	unsigned int dump_length = 0;
@@ -1538,9 +1560,10 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 		return;
 #endif
 	} else if(memcmp(cmdbuf, (void *)"flash:", 6) == 0) {
+		INFO("recog updatefile\n");
+#if 0
 		struct ptentry *ptn = NULL;
 
-		INFO("recog updatefile\n");
 
 #ifdef FLUSH_SPARSE_IMAGE
 		/* 暂时规避B050升级system.img时USB的bug，将system.img分割成多块进行传输，
@@ -1635,6 +1658,9 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 			INFO(" - OKAY\n");
 		}
 		ptn->start -= image_addr_offset;
+#else
+		fb_flash(cmdbuf);
+#endif
 		return;
 	} else if(memcmp(cmdbuf, (void *)"boot", 4) == 0) {
 		INFO(" - OKAY\n");
