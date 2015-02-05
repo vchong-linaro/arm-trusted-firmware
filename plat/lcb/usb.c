@@ -31,6 +31,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <debug.h>
 #include <hi6220.h>
 #include <mmio.h>
@@ -109,15 +110,15 @@ static const struct usb_string_descriptor serial_string_descriptor = {
 static const struct usb_string_descriptor lang_descriptor = {
 	4,
 	USB_DT_STRING,
-	{0x0409}
+	{0x0409}	/* en-US */
 };
 
 static void usb_rx_cmd_complete(unsigned actual, int stat);
 static void usb_rx_data_complete(unsigned actual, int status);
 
 static unsigned int rx_desc_bytes = 0;
-static unsigned rx_addr;
-static unsigned rx_length;
+static unsigned long rx_addr;
+static unsigned long rx_length;
 static unsigned int last_one = 0;
 static struct usb_string_descriptor *serial_string = NULL;
 static char *cmdbuf;
@@ -1352,10 +1353,103 @@ int init_usb(void)
 #define LOCK_STATE_UNLOCKED		1
 #define LOCK_STATE_RELOCKED		2
 
-#define FASTBOOT2
+#define FB_MAX_FILE_SIZE		(128 * 1024 * 1024)
+
+static struct ptentry *flash_ptn = NULL;
+
+static void fb_getvar(char *cmdbuf)
+{
+	char response[64];
+	char part_name[32];
+	int bytes;
+	struct ptentry *ptn = 0;
+
+	if (!strncmp(cmdbuf + 7, "max-download-size", 17)) {
+		bytes = sprintf(response, "OKAY0x%08x",
+				FB_MAX_FILE_SIZE);
+		response[bytes] = '\0';
+		tx_status(response);
+		rx_cmd();
+	} else if (!strncmp(cmdbuf + 7, "partition-type:", 15)) {
+		bytes = sprintf(part_name, "%s", cmdbuf + 22);
+		ptn = find_ptn(part_name);
+		if (ptn == NULL) {
+			bytes = sprintf(response, "FAIL%s",
+					"invalid partition");
+			response[bytes] = '\0';
+			flash_ptn = NULL;
+		} else {
+			bytes = sprintf(response, "OKAY");
+			response[bytes] = '\0';
+			flash_ptn = ptn;
+		}
+		tx_status(response);
+		rx_cmd();
+	}
+}
+
+/* FIXME: do not support endptr yet */
+static unsigned long strtoul(const char *nptr, char **endptr, int base)
+{
+	unsigned long step, data;
+	int i;
+
+	if (base == 0)
+		step = 10;
+	else if ((base < 2) || (base > 36)) {
+		VERBOSE("%s: invalid base %d\n", __func__, base);
+		return 0;
+	} else
+		step = base;
+
+	for (i = 0, data = 0; ; i++) {
+		if (nptr[i] == '\0')
+			break;
+		else if (!isalpha(nptr[i]) && !isdigit(nptr[i])) {
+			VERBOSE("%s: invalid string %s at %d [%x]\n",
+				__func__, nptr, i, nptr[i]);
+			return 0;
+		} else {
+			data *= step;
+			if (isupper(nptr[i]))
+				data += nptr[i] - 'A' + 10;
+			else if (islower(nptr[i]))
+				data += nptr[i] - 'a' + 10;
+			else if (isdigit(nptr[i]))
+				data += nptr[i] - '0';
+		}
+	}
+	return data;
+}
+
+#define FB_DOWNLOAD_BASE	0x00400000
+
+static void fb_download(char *cmdbuf)
+{
+	char response[64];
+	int bytes;
+
+	if (!flash_ptn) {
+		bytes = sprintf(response, "FAIL%s",
+				"invalid partition");
+	} else {
+		rx_addr = FB_DOWNLOAD_BASE;
+		rx_length = strtoul(cmdbuf + 9, NULL, 16);
+		if (rx_length > FB_MAX_FILE_SIZE) {
+			bytes = sprintf(response, "FAIL%s",
+					"file is too large");
+		} else {
+			bytes = sprintf(response, "DATA");
+			NOTICE("start:0x%x, length:0x%x\n", rx_addr, rx_length);
+		}
+	}
+	response[bytes] = '\0';
+	tx_status(response);
+	rx_cmd();
+}
+
 static void usb_rx_cmd_complete(unsigned actual, int stat)
 {
-#ifdef FASTBOOT2
 #define TX_DATA_BUFFER_SIZE    2
 #define MAX_RESPONSE_NUMBER	65
 	unsigned int image_addr_offset = 0;
@@ -1409,6 +1503,12 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 			board_reboot();
 		}
 #endif
+	} else if (!memcmp(cmdbuf, (void *)"getvar:", 7)) {
+		fb_getvar(cmdbuf);
+		return;
+	} else if (!memcmp(cmdbuf, (void *)"download:", 9)) {
+		fb_download(cmdbuf);
+		return;
 	} else if(memcmp(cmdbuf, (void *)"erase:", 6) == 0) {
 #if 0
 		struct ptentry *ptn = (ptentry *)NULL;
@@ -1559,7 +1659,6 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 
 	tx_status("FAILinvalid command");
 	rx_cmd();
-#endif
 }
 
 static void usbloader_init(void)
