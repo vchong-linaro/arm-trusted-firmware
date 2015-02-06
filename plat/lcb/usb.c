@@ -1463,17 +1463,8 @@ static void fb_download(char *cmdbuf)
 static void fb_flash(char *cmdbuf)
 {
 	flush_user_images(cmdbuf + 6, fb_download_base, fb_download_size);
-#if 0
-	int i;
-
-	for (i = 0; i < 0x20000; i += 16) {
-		NOTICE("[%x] %x %x %x %x\n", FB_DOWNLOAD_BASE + i,
-			mmio_read_32(FB_DOWNLOAD_BASE + i),
-			mmio_read_32(FB_DOWNLOAD_BASE + i + 4),
-			mmio_read_32(FB_DOWNLOAD_BASE + i + 8),
-			mmio_read_32(FB_DOWNLOAD_BASE + i + 12));
-	}
-#endif
+	tx_status("OKAY");
+	rx_cmd();
 }
 
 static void usb_rx_cmd_complete(unsigned actual, int stat)
