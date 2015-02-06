@@ -1425,6 +1425,8 @@ static unsigned long strtoul(const char *nptr, char **endptr, int base)
 
 #define FB_DOWNLOAD_BASE	0x00400000
 
+static unsigned long fb_download_base, fb_download_size;
+
 static void fb_download(char *cmdbuf)
 {
 	char response[64];
@@ -1439,6 +1441,8 @@ static void fb_download(char *cmdbuf)
 	} else {
 		rx_addr = FB_DOWNLOAD_BASE;
 		rx_length = strtoul(cmdbuf + 9, NULL, 16);
+		fb_download_base = rx_addr;
+		fb_download_size = rx_length;
 		if (rx_length > FB_MAX_FILE_SIZE) {
 			bytes = sprintf(response, "FAIL%s",
 					"file is too large");
@@ -1458,7 +1462,7 @@ static void fb_download(char *cmdbuf)
 
 static void fb_flash(char *cmdbuf)
 {
-	flush_user_images(cmdbuf + 6, rx_addr, rx_length);
+	flush_user_images(cmdbuf + 6, fb_download_base, fb_download_size);
 #if 0
 	int i;
 

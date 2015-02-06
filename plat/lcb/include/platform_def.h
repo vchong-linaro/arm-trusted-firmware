@@ -96,7 +96,6 @@
 #define MMC_SIZE			0x80000000
 #define MMC_LOADER_BASE			MMC_BASE		/* boot */
 #define MMC_BL1_SIZE			0x00200000
-#define MMC_BL2_BASE			(MMC_BASE + 0x100000)	/* normal */
 
 #define ONCHIPROM_PARAM_BASE		(XG2RAM0_BASE + 0x700)
 #define LOADER_RAM_BASE			(XG2RAM0_BASE + 0x800)

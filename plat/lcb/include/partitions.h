@@ -67,6 +67,7 @@ typedef enum _vrl_id
 
 extern int get_partition(void);
 extern struct ptentry *find_ptn(const char *str);
+extern int update_fip_spec(void);
 
 #endif /* __PARTITIONS_H__ */
 

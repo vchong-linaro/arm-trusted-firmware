@@ -222,6 +222,7 @@ int get_partition(void)
 			break;
 	}
 	io_close(img_handle);
+	update_fip_spec();
 	dump_entries();
 exit:
 	return result;

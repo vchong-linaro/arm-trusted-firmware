@@ -39,6 +39,7 @@
 #include <io_memmap.h>
 #include <io_storage.h>
 #include <mmio.h>
+#include <partitions.h>
 #include <platform_def.h>
 #include <semihosting.h>	/* For FOPEN_MODE_... */
 #include <string.h>
@@ -85,9 +86,9 @@ static const io_block_spec_t normal_emmc_spec = {
 	.length = MMC_SIZE,
 };
 
-static const io_block_spec_t fip_block_spec = {
-	.offset = MMC_BL2_BASE,
-	.length = 0x800000,	/* 8MB */
+static io_block_spec_t fip_block_spec = {
+	.offset = 0,
+	.length = 0,
 };
 
 static const io_file_spec_t bl2_file_spec = {
@@ -432,6 +433,26 @@ exit:
 	return result;
 }
 
+int update_fip_spec(void)
+{
+	struct ptentry *ptn;
+
+	ptn = find_ptn("fastboot");
+	if (!ptn) {
+		WARN("failed to find partition fastboot\n");
+		ptn = find_ptn("bios");
+		if (!ptn) {
+			WARN("failed to find partition bios\n");
+			return IO_FAIL;
+		}
+	}
+	NOTICE("name:%s, start:%x, length:%x\n",
+		ptn->name, ptn->start, ptn->length);
+	fip_block_spec.offset = ptn->start;
+	fip_block_spec.length = ptn->length;
+	return IO_SUCCESS;
+}
+
 /*
  * Flush bios.bin into User Data Area in eMMC
  */
@@ -439,6 +460,7 @@ int flush_user_images(char *cmdbuf, unsigned long img_addr,
 		      unsigned long img_length)
 {
 	struct entry_head entries[5];
+	struct ptentry *ptn;
 	size_t length;
 	ssize_t offset;
 	int result = IO_FAIL;
@@ -447,7 +469,19 @@ int flush_user_images(char *cmdbuf, unsigned long img_addr,
 	result = fetch_entry_head((void *)img_addr, USER_MAX_ENTRIES, entries);
 	switch (result) {
 	case IO_NOT_SUPPORTED:
-		fp = 0;
+		if (!strncmp(cmdbuf, "fastboot", 8) ||
+		    !strncmp(cmdbuf, "bios", 4)) {
+			update_fip_spec();
+		}
+		ptn = find_ptn(cmdbuf);
+		if (!ptn) {
+			WARN("failed to find partition %s\n", cmdbuf);
+			return IO_FAIL;
+		}
+		img_length = (img_length + 512 - 1) / 512 * 512;
+		result = flush_single_image(NORMAL_EMMC_NAME, img_addr,
+					    ptn->start, img_length);
+		NOTICE("#%s, %d, result:%d\n", __func__, __LINE__, result);
 		break;
 	case IO_SUCCESS:
 		if (strncmp(cmdbuf, "ptable", 6)) {

@@ -1134,12 +1134,12 @@ void bl1_platform_setup(void)
 	reset_mmc0_clk();
 	io_setup();
 	led_on();
+	/* FIXME: support the raw eMMC */
+	get_partition();
 	if (query_boot_mode()) {
-		flush_image();
+		flush_loader_image();
+		usb_download();
 	}
-	//init_mmc();
-	query_clk_freq(CLK_MMC0_SRC);
-	//get_partition();
 }
 
 /*******************************************************************************
