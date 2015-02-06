@@ -435,7 +435,8 @@ exit:
 /*
  * Flush bios.bin into User Data Area in eMMC
  */
-int flush_user_images(unsigned long img_addr, unsigned long img_length)
+int flush_user_images(char *cmdbuf, unsigned long img_addr,
+		      unsigned long img_length)
 {
 	struct entry_head entries[5];
 	size_t length;
@@ -449,6 +450,11 @@ int flush_user_images(unsigned long img_addr, unsigned long img_length)
 		fp = 0;
 		break;
 	case IO_SUCCESS:
+		if (strncmp(cmdbuf, "ptable", 6)) {
+			WARN("it's not for ptable\n");
+			return IO_FAIL;
+		}
+		/* currently it's for partition table */
 		/* the first block is for entry headers */
 		fp = 512;
 

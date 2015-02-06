@@ -1452,13 +1452,13 @@ static void fb_download(char *cmdbuf)
 			response[bytes] = '\0';
 			tx_status(response);
 			rx_data();
-			flush_user_images(rx_addr, rx_length);
 		}
 	}
 }
 
 static void fb_flash(char *cmdbuf)
 {
+	flush_user_images(cmdbuf + 6, rx_addr, rx_length);
 #if 0
 	int i;
 
@@ -1562,10 +1562,10 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 		return;
 #endif
 	} else if(memcmp(cmdbuf, (void *)"flash:", 6) == 0) {
-		INFO("recog updatefile\n");
 #if 0
 		struct ptentry *ptn = NULL;
 
+		INFO("recog updatefile\n");
 
 #ifdef FLUSH_SPARSE_IMAGE
 		/* 暂时规避B050升级system.img时USB的bug，将system.img分割成多块进行传输，
@@ -1661,6 +1661,7 @@ static void usb_rx_cmd_complete(unsigned actual, int stat)
 		}
 		ptn->start -= image_addr_offset;
 #else
+		INFO("recog updatefile\n");
 		fb_flash(cmdbuf);
 #endif
 		return;
