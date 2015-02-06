@@ -34,6 +34,7 @@
 #include <bl_common.h>
 #include <console.h>
 #include <debug.h>
+#include <partitions.h>
 #include <platform.h>
 #include <platform_def.h>
 #include <string.h>
@@ -160,6 +161,7 @@ void bl2_early_platform_setup(meminfo_t *mem_layout)
  ******************************************************************************/
 void bl2_platform_setup(void)
 {
+	get_partition();
 }
 
 /* Flush the TF params and the TF plat params */

@@ -79,6 +79,7 @@ BL2_SOURCES		+=	plat/common/aarch64/platform_up_stack.S	\
 				plat/lcb/aarch64/plat_helpers.S		\
 				plat/lcb/bl2_plat_setup.c		\
 				plat/lcb/dw_mmc.c			\
+				plat/lcb/partitions.c			\
 				plat/lcb/sp804_timer.c
 
 BL31_SOURCES		+=	drivers/arm/gic/arm_gic.c		\
