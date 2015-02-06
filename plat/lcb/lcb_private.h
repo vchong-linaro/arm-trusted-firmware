@@ -77,7 +77,8 @@ int plat_get_image_source(const char *image_name,
 			  uintptr_t *image_spec);
 uint64_t plat_get_syscnt_freq(void);
 void plat_gic_init(void);
-int flush_image(void);
+int flush_loader_image(void);
+int flush_user_images(unsigned long addr, unsigned long length);
+void usb_download(void);
 
 #endif /* __LCB_PRIVATE_H__ */
-

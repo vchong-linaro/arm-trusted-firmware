@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arch_helpers.h>
 #include <assert.h>
 #include <debug.h>
 #include <io_driver.h>
@@ -41,8 +42,21 @@
 #include <platform_def.h>
 #include <semihosting.h>	/* For FOPEN_MODE_... */
 #include <string.h>
+#include "lcb_private.h"
 
 #define LOADER_MAX_ENTRIES		2
+#define PTABLE_MAX_ENTRIES		3
+#define USER_MAX_ENTRIES		2
+
+#define FLUSH_BASE		(DDR_BASE + 0x100000)
+
+struct entry_head {
+	unsigned char	magic[8];
+	unsigned char	name[8];
+	unsigned int	start;	/* lba */
+	unsigned int	count;	/* lba */
+	unsigned int	flag;
+};
 
 static const io_dev_connector_t *bl1_mem_dev_con;
 static uintptr_t bl1_mem_dev_spec;
@@ -73,7 +87,7 @@ static const io_block_spec_t normal_emmc_spec = {
 
 static const io_block_spec_t fip_block_spec = {
 	.offset = MMC_BL2_BASE,
-	.length = 0x1000000,	/* 16MB */
+	.length = 0x800000,	/* 8MB */
 };
 
 static const io_file_spec_t bl2_file_spec = {
@@ -265,35 +279,39 @@ int plat_get_image_source(const char *image_name, uintptr_t *dev_handle,
 	return result;
 }
 
-#define FLUSH_BASE		(DDR_BASE + 0x100000)
-#define TEST_BASE		(DDR_BASE + 0x300000)
-
-struct entry_head {
-	unsigned char	magic[8];
-	unsigned char	name[8];
-	unsigned int	start;	/* lba */
-	unsigned int	count;	/* lba */
-	unsigned int	flag;
-};
-
-static int parse_loader(void *buf, int num, struct entry_head *hd)
+static int fetch_entry_head(void *buf, int num, struct entry_head *hd)
 {
+	unsigned char magic[8] = "ENTRYHDR";
 	if (hd == NULL)
 		return IO_FAIL;
-	memcpy((void *)hd, (void *)(FLUSH_BASE + 28), 140);
-	return IO_SUCCESS;
+	/* FIXME: If read back, memcpy() works well. Otherwise, it'll fail */
+	NOTICE("[%x]: %x %x %x %x %x %x %x %x\n",
+		(unsigned long)hd,
+		mmio_read_32((unsigned long)hd),
+		mmio_read_32((unsigned long)hd + 4),
+		mmio_read_32((unsigned long)hd + 8),
+		mmio_read_32((unsigned long)hd + 12),
+		mmio_read_32((unsigned long)hd + 16),
+		mmio_read_32((unsigned long)hd + 20),
+		mmio_read_32((unsigned long)hd + 24),
+		mmio_read_32((unsigned long)hd + 28));
+	memcpy((void *)hd, buf, sizeof(struct entry_head) * num);
+	if (!strncmp((void *)hd->magic, (void *)magic, 8))
+		return IO_SUCCESS;
+	return IO_NOT_SUPPORTED;
 }
 
 static int flush_loader(void)
 {
+	struct entry_head entries[5];
 	uintptr_t img_handle, spec;
 	int result = IO_FAIL;
 	size_t bytes_read, length;
-	struct entry_head entries[5];
 	ssize_t offset;
 	int i, fp;
 
-	result = parse_loader((void *)FLUSH_BASE, LOADER_MAX_ENTRIES, entries);
+	result = fetch_entry_head((void *)(FLUSH_BASE + 28),
+				  LOADER_MAX_ENTRIES, entries);
 	if (result) {
 		WARN("failed to parse entries in loader image\n");
 		return result;
@@ -308,13 +326,13 @@ static int flush_loader(void)
 		result = plat_get_image_source(BOOT_EMMC_NAME, &emmc_dev_handle,
 					       &spec);
 		if (result) {
-			WARN("failed to open emmc boot partition\n");
+			WARN("failed to open emmc boot area\n");
 			return result;
 		}
+		/* offset in Boot Area1 */
 		offset = MMC_LOADER_BASE + entries[i].start * 512;
 
-		result = io_open(emmc_dev_handle, (uintptr_t)&boot_emmc_spec,
-				 &img_handle);
+		result = io_open(emmc_dev_handle, spec, &img_handle);
 		if (result != IO_SUCCESS) {
 			WARN("Failed to open memmap device\n");
 			return result;
@@ -342,7 +360,10 @@ exit:
 	return result;
 }
 
-int flush_image(void)
+/*
+ * Flush l-loader.bin (loader & bl1.bin) into Boot Area1 of eMMC.
+ */
+int flush_loader_image(void)
 {
 	uintptr_t bl1_image_spec;
 	int result = IO_FAIL;
@@ -373,5 +394,83 @@ int flush_image(void)
 exit:
 	io_close(img_handle);
 	io_dev_close(loader_mem_dev_handle);
+	return result;
+}
+
+static int flush_single_image(const char *mmc_name, unsigned long img_addr,
+				ssize_t offset, size_t length)
+{
+	uintptr_t img_handle, spec = 0;
+	size_t bytes_read;
+	int result = IO_FAIL;
+
+	result = plat_get_image_source(mmc_name, &emmc_dev_handle,
+				       &spec);
+	if (result) {
+		WARN("failed to open emmc user data area\n");
+		return result;
+	}
+
+	result = io_open(emmc_dev_handle, spec, &img_handle);
+	if (result != IO_SUCCESS) {
+		WARN("Failed to open memmap device\n");
+		return result;
+	}
+
+	result = io_seek(img_handle, IO_SEEK_SET, offset);
+	if (result)
+		goto exit;
+
+	result = io_write(img_handle, img_addr, length,
+			  &bytes_read);
+	if ((result != IO_SUCCESS) || (bytes_read < length)) {
+		WARN("Failed to write file (%i)\n", result);
+		goto exit;
+	}
+exit:
+	io_close(img_handle);
+	return result;
+}
+
+/*
+ * Flush bios.bin into User Data Area in eMMC
+ */
+int flush_user_images(unsigned long img_addr, unsigned long img_length)
+{
+	struct entry_head entries[5];
+	size_t length;
+	ssize_t offset;
+	int result = IO_FAIL;
+	int i, fp;
+
+	result = fetch_entry_head((void *)img_addr, USER_MAX_ENTRIES, entries);
+	switch (result) {
+	case IO_NOT_SUPPORTED:
+		fp = 0;
+		break;
+	case IO_SUCCESS:
+		/* the first block is for entry headers */
+		fp = 512;
+
+		for (i = 0; i < USER_MAX_ENTRIES; i++) {
+			if (entries[i].flag != 0) {
+				WARN("Invalid flag in entry:0x%x\n",
+					entries[i].flag);
+				return IO_NOT_SUPPORTED;
+			}
+			length = entries[i].count * 512;
+			offset = MMC_BASE + entries[i].start * 512;
+			NOTICE("i:%d, start:%x, count:%x\n", i, entries[i].start, entries[i].count);
+			NOTICE("i:%d, fp:0x%x, MMC offset:0x%x, length:0x%x, img_addr:0x%x, img_len:0x%x\n",
+				i, fp, offset, length, img_addr, img_length);
+			result = flush_single_image(NORMAL_EMMC_NAME,
+						img_addr + fp, offset, length);
+			fp += entries[i].count * 512;
+		}
+		break;
+	case IO_FAIL:
+		WARN("failed to parse entries in user image.\n");
+		return result;
+	}
 	return result;
 }

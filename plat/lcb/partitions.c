@@ -75,7 +75,8 @@ struct efi_entry {
 	uint16_t	name[EFI_NAMELEN];
 };
 
-static struct ptentry ptable[EFI_ENTRIES];
+/* the first entry is dummy for ptable (covers both primary & secondary) */
+static struct ptentry ptable[EFI_ENTRIES + 1];
 static int entries;	/* partition entry entries */
 
 static void dump_entries(void)
@@ -126,9 +127,20 @@ static int parse_entry(uintptr_t buf)
 	return 0;
 }
 
+/* create dummy entry for ptable */
+static void create_dummy_entry(void)
+{
+	int bytes;
+	ptable[entries].start = 0;
+	ptable[entries].length = 0;
+	bytes = sprintf(ptable[entries].name, "ptable");
+	ptable[entries].name[bytes] = '\0';
+	entries++;
+}
+
 struct ptentry *find_ptn(const char *str)
 {
-	struct ptentry *ptn = 0;
+	struct ptentry *ptn = NULL;
 	int i;
 
 	for (i = 0; i < entries; i++) {
@@ -149,6 +161,7 @@ int get_partition(void)
 	unsigned int buf[MMC_BLOCK_SIZE >> 2];
 	struct efi_header *hd = NULL;
 
+	create_dummy_entry();
 	result = plat_get_image_source(NORMAL_EMMC_NAME, &emmc_dev_handle,
 				       &spec);
 	if (result) {

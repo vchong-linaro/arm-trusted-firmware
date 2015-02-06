@@ -40,6 +40,7 @@
 #include <sp804_timer.h>
 #include <string.h>
 #include <usb.h>
+#include "lcb_private.h"
 
 #define NUM_ENDPOINTS			16
 
@@ -1451,6 +1452,7 @@ static void fb_download(char *cmdbuf)
 			response[bytes] = '\0';
 			tx_status(response);
 			rx_data();
+			flush_user_images(rx_addr, rx_length);
 		}
 	}
 }
