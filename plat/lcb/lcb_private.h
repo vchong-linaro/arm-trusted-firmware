@@ -80,5 +80,6 @@ void plat_gic_init(void);
 int flush_loader_image(void);
 int flush_user_images(char *cmdbuf, unsigned long addr, unsigned long length);
 void usb_download(void);
+void hi6220_pll_init(void);
 
 #endif /* __LCB_PRIVATE_H__ */
