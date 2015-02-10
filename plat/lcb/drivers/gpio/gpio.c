@@ -59,9 +59,9 @@ int gpio_direction_input(unsigned int gpio)
 		return -EINVAL;
 	offset = gpio % 8;
 
-	data = mmio_read_8(gc_base);
+	data = mmio_read_8(gc_base + GPIO_DIR);
 	data &= ~(1 << offset);
-	mmio_write_8(gc_base, data);
+	mmio_write_8(gc_base + GPIO_DIR, data);
 	return 0;
 }
 
@@ -74,9 +74,9 @@ int gpio_direction_output(unsigned int gpio)
 		return -EINVAL;
 	offset = gpio % 8;
 
-	data = mmio_read_8(gc_base);
+	data = mmio_read_8(gc_base + GPIO_DIR);
 	data |= 1 << offset;
-	mmio_write_8(gc_base, data);
+	mmio_write_8(gc_base + GPIO_DIR, data);
 	return 0;
 }
 
