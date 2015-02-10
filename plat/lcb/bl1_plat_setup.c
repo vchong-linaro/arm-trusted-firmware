@@ -168,20 +168,13 @@ int query_boot_mode(void)
 
 static void led_on(void)
 {
-#if 0
-	unsigned int data;
-
-	/* DR3: red led, DR4: green led */
-	hi6553_write_8(DR3_START_DEL, LED_START_DELAY_TIME);
-	hi6553_write_8(DR3_ISET, LED_ELEC_VALUE);
-	hi6553_write_8(DR4_START_DEL, LED_START_DELAY_TIME);
-	hi6553_write_8(DR4_ISET,LED_ELEC_VALUE);
-	hi6553_write_8(DR345_TIM_CONF0, LED_LIGHT_TIME);
-	data = hi6553_read_8(DR_LED_CTRL);
-	data |= LED_GREEN_ENABLE;
-	hi6553_write_8(DR_LED_CTRL, data);
-	hi6553_write_8(DR_OUT_CTRL, LED_OUT_CTRL);
-#endif
+	/* GPIO4_0--GPIO4_3, base address is 0xf702_0000 */
+	/* Keep USER LED0 on in ATF */
+	gpio_direction_output(32);
+	gpio_set_value(32, 1);
+	gpio_direction_output(33);
+	gpio_direction_output(34);
+	gpio_direction_output(35);
 }
 
 /*******************************************************************************
