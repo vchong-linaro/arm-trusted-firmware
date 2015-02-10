@@ -81,11 +81,18 @@ func plat_crash_console_putc
 	 * ---------------------------------------------
 	 */
 func plat_report_exception
+	/* save x0 */
 	mov	x8, x0
-	/* Turn On RED led */
-	ldr	x2, =0xf8000260
-	mov	w0, #1
-	str	w0, [x2]
+	/* Turn On all four LEDs on */
+	ldr	x2, =0xf7020000
+	mov	w0, #0x1
+	str	w0, [x2, #4]
+	mov	w0, #2
+	str	w0, [x2, #8]
+	mov	w0, #4
+	str	w0, [x2, #16]
+	mov	w0, #8
+	str	w0, [x2, #32]
 	mov	x0, x8
 	ret
 
