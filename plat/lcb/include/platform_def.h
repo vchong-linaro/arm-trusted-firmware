@@ -135,7 +135,7 @@
 /*******************************************************************************
  * Load address of BL3-3 in the LCB port
  ******************************************************************************/
-#define NS_IMAGE_OFFSET			(DRAM_BASE + 0x00400000)  /* 4MB */
+#define NS_IMAGE_OFFSET			(DRAM_BASE + 0x37000000)  /* 880MB */
 
 /*******************************************************************************
  * Platform specific page table and MMU setup constants
