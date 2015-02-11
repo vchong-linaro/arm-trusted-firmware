@@ -128,34 +128,6 @@ static int g_usb_enum_flag = 0;
 
 int usb_need_reset = 0;
 
-static const char *reqname(unsigned char r)  //reserved
-{
-	switch(r) {
-	case USB_REQ_GET_STATUS:
-		return "GET_STATUS";
-	case USB_REQ_CLEAR_FEATURE:
-		return "CLEAR_FEATURE";
-	case USB_REQ_SET_FEATURE:
-		return "SET_FEATURE";
-	case USB_REQ_SET_ADDRESS:
-		return "SET_ADDRESS";
-	case USB_REQ_GET_DESCRIPTOR:
-		return "GET_DESCRIPTOR";
-	case USB_REQ_SET_DESCRIPTOR:
-		return "SET_DESCRIPTOR";
-	case USB_REQ_GET_CONFIGURATION:
-		return "GET_CONFIGURATION";
-	case USB_REQ_SET_CONFIGURATION:
-		return "SET_CONFIGURATION";
-	case USB_REQ_GET_INTERFACE:
-		return "GET_INTERFACE";
-	case USB_REQ_SET_INTERFACE:
-		return "SET_INTERFACE";
-	default:
-		return "*UNKNOWN*";
-	}
-}
-
 static int usb_drv_port_speed(void)
 {
 	/* 2'b00 High speed (PHY clock is at 30MHz or 60MHz) */
@@ -362,7 +334,6 @@ void usb_drv_set_address(int address)
 
 static void ep_send(int ep, const void *ptr, int len)
 {
-	int blocksize, packets;
 	unsigned int data;
 
 	endpoints[ep].busy = 1;		// true
@@ -371,20 +342,12 @@ static void ep_send(int ep, const void *ptr, int len)
 	/* EPx OUT ACTIVE */
 	data = mmio_read_32(DIEPCTL(ep)) | DXEPCTL_USBACTEP;
 	mmio_write_32(DIEPCTL(ep), data);
-	if (!ep) {
-		blocksize = 64;
-	} else {
-		blocksize = usb_drv_port_speed() ? USB_BLOCK_HIGH_SPEED_SIZE : 64;
-	}
-	packets = (len + blocksize - 1) / blocksize;    // transfer block number
 
 	/* set DMA Address */
 	if (!len) {
 		/* send one empty packet */
 		dma_desc_in.buf = 0;
 	} else {
-		VERBOSE("%s, size = 0x%x, ptr = 0x%x, packets = %d, len = %d.\n",
-			__func__, len | (packets << 19), ptr, packets, len);
 		dma_desc_in.buf = (unsigned long)ptr;
 	}
 	dma_desc_in.status.b.bs = 0x3;
@@ -852,10 +815,6 @@ void usb_handle_control_request(setup_packet* req)
 	memcpy(&config_bundle.ep2, &const_ep2, sizeof(struct usb_endpoint_descriptor));
 	memcpy(&device_descriptor, &const_device,
 		sizeof(struct usb_device_descriptor));
-
-	VERBOSE("type=%x req=%x val=%x idx=%x len=%x (%s).\n",
-		req->type, req->request, req->value, req->index,
-		req->length, reqname(req->request));
 
 	switch (req->request) {
 	case USB_REQ_GET_STATUS:
