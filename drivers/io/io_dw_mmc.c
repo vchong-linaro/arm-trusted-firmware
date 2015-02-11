@@ -183,7 +183,7 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 			     size_t length, size_t *length_read)
 {
 	file_state_t *fp;
-	int result, i;
+	int result;
 
 	assert(entity != NULL);
 	assert(buffer != (uintptr_t)NULL);
@@ -191,21 +191,16 @@ static int dw_mmc_block_read(io_entity_t *entity, uintptr_t buffer,
 
 	fp = (file_state_t *)entity->info;
 
-	NOTICE("###%s, %d, boot_partition:%d\n", __func__, __LINE__, fp->boot_partition);
 	/* dst_start param isn't used yet, data will be loaded into MMC_DATA_BASE */
 	result = mmc0_read(fp->base + fp->file_pos, length, buffer, fp->boot_partition);
 	if (result) {
-		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
+		WARN("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
 	}
 
 	*length_read = length;
 	/* advance the file 'cursor' for incremental reads */
 	fp->file_pos += length;
-
-	for (i = 0x0; i < 0x10; i += 4) {
-		NOTICE("###[0x%x]:0x%x  ", buffer + i, mmio_read_32(buffer + i));
-	}
 
 	return IO_SUCCESS;
 }
@@ -214,7 +209,7 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 			      size_t length, size_t *length_written)
 {
 	file_state_t *fp;
-	int result, i;
+	int result;
 
 	assert(entity != NULL);
 	assert(buffer != (uintptr_t)NULL);
@@ -222,10 +217,9 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 
 	fp = (file_state_t *)entity->info;
 
-	NOTICE("###%s, %d, boot_partition:%d\n", __func__, __LINE__, fp->boot_partition);
 	result = mmc0_write(fp->base + fp->file_pos, length, buffer, fp->boot_partition);
 	if (result) {
-		NOTICE("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
+		WARN("failed to ready mmc offset 0x%x\n", fp->base + fp->file_pos);
 		return result;
 	}
 
@@ -233,9 +227,6 @@ static int dw_mmc_block_write(io_entity_t *entity, uintptr_t buffer,
 	/* advance the file 'cursor' for incremental reads */
 	fp->file_pos += length;
 
-	for (i = 0x0; i < 0x10; i += 4) {
-		NOTICE("###[0x%x]:0x%x  ", buffer + i, mmio_read_32(buffer + i));
-	}
 	return IO_SUCCESS;
 }
 
@@ -256,7 +247,6 @@ static int dw_mmc_dev_init(io_dev_info_t *dev_info, const uintptr_t init_params)
 {
 	struct dw_mmc_info *info = (struct dw_mmc_info *)(dev_info->info);
 
-	NOTICE("###init dwmmc, init:%d, boot partition:%d\n", info->init, init_params);
 	if (!info->init) {
 		init_mmc();
 		info->init = 1;

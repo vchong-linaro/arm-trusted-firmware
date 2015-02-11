@@ -75,7 +75,7 @@ static int update_mmc0_clock(void)
 			break;
 		data = mmio_read_32(MMC0_RINTSTS);
 		if (data & MMC_INT_HLE) {
-			NOTICE("fail to update mmc clock frequency\n");
+			WARN("fail to update mmc clock frequency\n");
 			return -EINVAL;
 		}
 	}
@@ -135,7 +135,7 @@ static int mmc0_send_cmd(unsigned int cmd, unsigned int arg, unsigned int *buf)
 	unsigned int data, err_mask;
 
 	if (!buf) {
-		NOTICE("buf is invalid\n");
+		WARN("buf is invalid\n");
 		return -EFAULT;
 	}
 
@@ -229,7 +229,7 @@ static void mmc0_check_tran_mode(void)
 	while (1) {
 		ret = mmc0_send_cmd(13, EMMC_FIX_RCA << 16, buf);
 		if (ret) {
-			NOTICE("failed on command 13\n");
+			WARN("failed on command 13\n");
 			return;
 		}
 		if (((buf[0] >> 9) & 0xf) == 4)
@@ -250,7 +250,7 @@ static int mmc0_update_ext_csd(int index, int value)
 
 	ret = mmc0_send_cmd(6, arg, buf);
 	if (ret) {
-		NOTICE("failed to send command 6\n");
+		WARN("failed to send command 6\n");
 		return ret;
 	}
 
@@ -264,12 +264,12 @@ static int mmc0_update_ext_csd(int index, int value)
 	do {
 		ret = mmc0_send_cmd(13, EMMC_FIX_RCA << 16, buf);
 		if (ret) {
-			NOTICE("failed to send command 13\n");
+			WARN("failed to send command 13\n");
 			return ret;
 		}
 
 		if (buf[0] & (1 << 7)) {
-			NOTICE("maybe switch mmc mode error\n");
+			WARN("maybe switch mmc mode error\n");
 			return -1;
 		}
 	} while ((buf[0] & 0x1e00) >> 9 == 7);
@@ -294,11 +294,11 @@ static int mmc0_set_clock_and_width(int rate, int width)
 		mmio_write_32(MMC0_UHSREG, 1 << 16);
 		break;
 	default:
-		NOTICE("wrong bus width:%d\n", width);
+		WARN("wrong bus width:%d\n", width);
 		return -EINVAL;
 	}
 	if (ret) {
-		NOTICE("return failure on %s, %d\n", __func__, __LINE__);
+		WARN("return failure on %s, %d\n", __func__, __LINE__);
 		return ret;
 	}
 
@@ -321,7 +321,7 @@ static int enum_mmc0_card(void)
 	/* CMD0: reset to IDLE */
 	ret = mmc0_send_cmd(0, 0, buf);
 	if (ret) {
-		NOTICE("failed to send IDLE command\n");
+		WARN("failed to send IDLE command\n");
 		return ret;
 	}
 
@@ -330,7 +330,7 @@ static int enum_mmc0_card(void)
 		/* CMD1: READY */
 		ret = mmc0_send_cmd(1, 0x40ff8000, buf);
 		if (ret) {
-			NOTICE("failed to send READY command\n");
+			WARN("failed to send READY command\n");
 			return ret;
 		}
 		if (buf[0] & 0x80000000)
@@ -340,30 +340,30 @@ static int enum_mmc0_card(void)
 	/* CMD2: IDENT */
 	ret = mmc0_send_cmd(2, 0, buf);
 	if (ret) {
-		NOTICE("failed to send IDENT command\n");
+		WARN("failed to send IDENT command\n");
 		return ret;
 	}
-	NOTICE("manuid:");
+	VERBOSE("manuid:");
 	for (i = 0; i < 4; i++) {
 		cid[i] = buf[i];
-		NOTICE(" 0x%x", cid[i]);
+		VERBOSE(" 0x%x", cid[i]);
 	}
-	NOTICE("\n");
+	VERBOSE("\n");
 
 	/* CMD3: STBY */
 	ret = mmc0_send_cmd(3, EMMC_FIX_RCA << 16, buf);
 	if (ret) {
-		NOTICE("failed to send STBY command\n");
+		WARN("failed to send STBY command\n");
 		return ret;
 	}
 
 	/* CMD9: get CSD */
 	ret = mmc0_send_cmd(9, EMMC_FIX_RCA << 16, buf);
 	if (ret) {
-		NOTICE("failed to get CSD\n");
+		WARN("failed to get CSD\n");
 		return ret;
 	}
-	NOTICE("CSD: %x-%x-%x-%x\n", buf[0], buf[1], buf[2], buf[3]);
+	VERBOSE("CSD: %x-%x-%x-%x\n", buf[0], buf[1], buf[2], buf[3]);
 	version = (buf[3] >> 26) & 0xf;
 	switch (version) {
 	case 0:	/* MMC v1.0-v1.2 */
@@ -376,15 +376,15 @@ static int enum_mmc0_card(void)
 		manu_id = (cid[3] >> 24) & 0xff;
 		break;
 	default:
-		NOTICE("wrong mmc version (%d) is specified.\n", version);
+		WARN("wrong mmc version (%d) is specified.\n", version);
 		break;
 	}
 
-	NOTICE("mmc version:%d\n", version);
+	VERBOSE("mmc version:%d\n", version);
 	/* CMD7: TRAN */
 	ret = mmc0_send_cmd(7, EMMC_FIX_RCA << 16, buf);
 	if (ret) {
-		NOTICE("failed to send TRAN command\n");
+		WARN("failed to send TRAN command\n");
 		return ret;
 	}
 	mmc0_check_tran_mode();
@@ -395,7 +395,7 @@ static int enum_mmc0_card(void)
 #endif
 	ret = mmc0_update_ext_csd(EXTCSD_HS_TIMING, 1);
 	if (ret) {
-		NOTICE("alter HS mode fail\n");
+		WARN("alter HS mode fail\n");
 	}
 
 	ret = mmc0_set_clock_and_width(50000000, 8);
@@ -498,7 +498,7 @@ static int mmc0_read_ext_csd(unsigned int dst_start)
 	/* read extended CSD */
 	ret = mmc0_send_cmd(8, EMMC_FIX_RCA << 16, buf);
 	if (ret) {
-		NOTICE("failed to send CMD8\n");
+		WARN("failed to send CMD8\n");
 		mmio_write_32(MMC0_RINTSTS, ~0);
 		return -EFAULT;
 	}
@@ -507,8 +507,7 @@ static int mmc0_read_ext_csd(unsigned int dst_start)
 		data = mmio_read_32(MMC0_RINTSTS);
 		if (data & (MMC_INT_DCRC | MMC_INT_DRT | MMC_INT_SBE |
 		    MMC_INT_EBE)) {
-			NOTICE("unwanted interrupts:0x%x\n", data);
-			//return -EINVAL;
+			WARN("unwanted interrupts:0x%x\n", data);
 		}
 		if (data & MMC_INT_DTO)
 			break;
@@ -519,17 +518,13 @@ static int mmc0_read_ext_csd(unsigned int dst_start)
 	if (blk_cnt > 1) {
 		ret = mmc0_send_cmd(12, EMMC_FIX_RCA << 16, buf);
 		if (ret) {
-			NOTICE("failed to send Stop Transmission command\n");
+			WARN("failed to send Stop Transmission command\n");
 			return ret;
 		}
 		mmio_write_32(MMC0_RINTSTS, ~0);
 	}
 	src_addr = MMC_DATA_BASE;
 	memcpy((void *)dst_addr, (void *)src_addr, MMC_BLOCK_SIZE);
-#if 1
-	for (i = 0; i < 0x200; i += 4)
-		NOTICE("[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
-#endif
 
 	return 0;
 }
@@ -548,7 +543,7 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 		/* switch to boot partition 1 */
 		ret = mmc0_update_ext_csd(179, (1 << 3) | 1);
 		if (ret) {
-			NOTICE("fail to switch eMMC boot partition\n");
+			WARN("fail to switch eMMC boot partition\n");
 			return ret;
 		}
 	}
@@ -616,23 +611,19 @@ int mmc0_read(unsigned int src_start, unsigned int src_size,
 	if (src_blk_cnt > 1) {
 		ret = mmc0_send_cmd(12, EMMC_FIX_RCA << 16, buf);
 		if (ret) {
-			NOTICE("failed to send Stop Transmission command\n");
+			WARN("failed to send Stop Transmission command\n");
 			return ret;
 		}
 		mmio_write_32(MMC0_RINTSTS, ~0);
 	}
 	src_addr = MMC_DATA_BASE + offset;
 	memcpy((void *)dst_addr, (void *)src_addr, src_size);
-#if 0
-	for (i = 0; i < 0x400; i += 4)
-		NOTICE("[0x%x]:0x%x  ", MMC_DATA_BASE + i, mmio_read_32(MMC_DATA_BASE + i));
-#endif
 
 	if (boot_partition) {
 		/* switch back to normal partition */
 		ret = mmc0_update_ext_csd(179, 1 << 3);
 		if (ret)
-			NOTICE("fail to switch eMMC normal partition\n");
+			WARN("fail to switch eMMC normal partition\n");
 	}
 	return ret;
 }
@@ -648,7 +639,7 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 		/* switch to boot partition 1 */
 		ret = mmc0_update_ext_csd(179, (1 << 3) | 1);
 		if (ret) {
-			NOTICE("fail to switch eMMC boot partition\n");
+			WARN("fail to switch eMMC boot partition\n");
 			return ret;
 		}
 	}
@@ -676,7 +667,7 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 	/* send write command */
 	ret = mmc0_send_cmd(cmd_idx, lba, resp_buf);
 	if (ret) {
-		NOTICE("failed to send CMD25\n");
+		WARN("failed to send CMD25\n");
 		mmio_write_32(MMC0_RINTSTS, ~0);
 		return -EFAULT;
 	}
@@ -684,7 +675,7 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 		data = mmio_read_32(MMC0_RINTSTS);
 		if (data & (MMC_INT_DCRC | MMC_INT_DRT | MMC_INT_SBE |
 		    MMC_INT_EBE)) {
-			NOTICE("unwanted interrupts:0x%x\n", data);
+			WARN("unwanted interrupts:0x%x\n", data);
 			return -EINVAL;
 		}
 		if (data & MMC_INT_DTO)
@@ -695,12 +686,12 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 	do {
 		ret = mmc0_send_cmd(13, EMMC_FIX_RCA << 16, resp_buf);
 		if (ret) {
-			NOTICE("failed to send command 13\n");
+			WARN("failed to send command 13\n");
 			return ret;
 		}
 
 		if (resp_buf[0] & (1 << 7)) {
-			NOTICE("maybe switch mmc mode error\n");
+			WARN("maybe switch mmc mode error\n");
 			return -1;
 		}
 	} while ((resp_buf[0] & 0x1e00) >> 9 == 7);
@@ -708,7 +699,7 @@ static int write_single_block(unsigned int lba, unsigned int buffer,
 		/* switch back to normal partition */
 		ret = mmc0_update_ext_csd(179, 1 << 3);
 		if (ret)
-			NOTICE("fail to switch eMMC normal partition\n");
+			WARN("fail to switch eMMC normal partition\n");
 	}
 	return ret;
 }
@@ -722,7 +713,7 @@ int mmc0_write(unsigned int mmc_start, unsigned int size,
 
 	offset = mmc_start % MMC_BLOCK_SIZE;
 	if (offset) {
-		NOTICE("The source address isn't aligned with MMC block!\n");
+		WARN("The source address isn't aligned with MMC block!\n");
 		return -EFAULT;
 	}
 	mmc_blk_cnt = (size + offset + MMC_BLOCK_SIZE - 1) / MMC_BLOCK_SIZE;
@@ -858,7 +849,6 @@ void init_mmc(void)
 	enable_mmc0();
 
 	ret = enum_mmc0_card();
-	NOTICE("#%s, %d, ret:%d\n", __func__, __LINE__, ret);
 	if (ret)
 		return;
 
@@ -873,7 +863,7 @@ void init_mmc(void)
 
 	ret = mmc0_send_cmd(23, 0, buf);
 	if (ret) {
-		NOTICE("failed to send cmd 23\n");
+		WARN("failed to send cmd 23\n");
 		mmio_write_32(MMC0_RINTSTS, ~0);
 		return;
 	}
