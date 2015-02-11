@@ -925,6 +925,26 @@ static void reset_mmc0_clk(void)
 	} while (data & (1 << 0));
 }
 
+static void init_media_clk(void)
+{
+	unsigned int data, value;
+
+	data = mmio_read_32(PMCTRL_MEDPLLCTRL);
+	data |= 1;
+	mmio_write_32(PMCTRL_MEDPLLCTRL, data);
+
+	for (;;) {
+		data = mmio_read_32(PMCTRL_MEDPLLCTRL);
+		value = 1 << 28;
+		if ((data & value) == value)
+			break;
+	}
+
+	data = mmio_read_32(PERI_SC_PERIPH_CLKEN12);
+	data = 1 << 10;
+	mmio_write_32(PERI_SC_PERIPH_CLKEN12, data);
+}
+
 void hi6220_pll_init(void)
 {
 	init_pll();
@@ -938,6 +958,7 @@ void hi6220_pll_init(void)
 #endif
 	init_mmc_pll();
 	reset_mmc0_clk();
+	init_media_clk();
 }
 
 int query_clk_freq(int clk_idx)
