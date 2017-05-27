@@ -63,6 +63,25 @@
 #define BL31_BASE			(BL2_LIMIT)		/* 1AC5_8000 */
 #define BL31_LIMIT			(BL31_BASE + 0x40000)	/* 1AC9_8000 */
 
+/*
+ * BL3-2 specific defines.
+ */
+
+/*
+ * The TSP currently only executes from DRAM.
+ */
+#define BL32_DRAM_BASE                  DDR_SEC_BASE
+#define BL32_DRAM_LIMIT                 (DDR_SEC_BASE+DDR_SEC_SIZE)
+
+#if (HIKEY960_TSP_RAM_LOCATION_ID == HIKEY960_DRAM_ID)
+#define TSP_SEC_MEM_BASE		BL32_DRAM_BASE
+#define TSP_SEC_MEM_SIZE		(BL32_DRAM_LIMIT - BL32_DRAM_BASE)
+#define BL32_BASE			BL32_DRAM_BASE
+#define BL32_LIMIT			BL32_DRAM_LIMIT
+#else
+#error "Currently unsupported HIKEY960_TSP_LOCATION_ID value"
+#endif
+
 #define NS_BL1U_BASE			(BL31_LIMIT)		/* 1AC9_8000 */
 #define NS_BL1U_SIZE			(0x00100000)
 #define NS_BL1U_LIMIT			(NS_BL1U_BASE + NS_BL1U_SIZE)
@@ -80,7 +99,7 @@
  */
 #define ADDR_SPACE_SIZE			(1ull << 32)
 
-#if IMAGE_BL1 || IMAGE_BL2 || IMAGE_BL31
+#if IMAGE_BL1 || IMAGE_BL2 || IMAGE_BL31 || IMAGE_BL32
 #define MAX_XLAT_TABLES			3
 #endif
 

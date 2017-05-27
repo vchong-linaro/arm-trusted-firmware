@@ -4,11 +4,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+# On Hikey, the TSP currently only executes from DRAM.
+HIKEY960_TSP_RAM_LOCATION	:=	dram
+ifeq (${HIKEY960_TSP_RAM_LOCATION}, dram)
+  HIKEY960_TSP_RAM_LOCATION_ID = HIKEY960_DRAM_ID
+else
+  $(error "Currently unsupported HIKEY960_TSP_RAM_LOCATION value")
+endif
+
 CRASH_CONSOLE_BASE		:=	PL011_UART6_BASE
 COLD_BOOT_SINGLE_CPU		:=	1
 PROGRAMMABLE_RESET_ADDRESS	:=	1
 
 # Process flags
+$(eval $(call add_define,HIKEY960_TSP_RAM_LOCATION_ID))
 $(eval $(call add_define,CRASH_CONSOLE_BASE))
 $(eval $(call FIP_ADD_IMG,SCP_BL2,--scp-fw))
 
@@ -63,3 +72,8 @@ BL31_SOURCES		+=	drivers/arm/cci/cci.c			\
 				plat/hisilicon/hikey960/drivers/pwrc/hisi_pwrc.c \
 				plat/hisilicon/hikey960/drivers/ipc/hisi_ipc.c \
 				${HIKEY960_GIC_SOURCES}
+
+# Enable workarounds for selected Cortex-A53 errata.
+ERRATA_A53_855873		:=	1
+ERRATA_A53_826319		:=	1
+ERRATA_A53_836870		:=	1
