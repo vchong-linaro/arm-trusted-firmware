@@ -68,6 +68,15 @@ static const mmap_region_t hikey960_mmap[] = {
 #if IMAGE_BL31
 static const mmap_region_t hikey960_mmap[] = {
 	MAP_DEVICE,
+	MAP_TSP_MEM,
+	{0}
+};
+#endif
+
+#if IMAGE_BL32
+static const mmap_region_t hikey960_mmap[] = {
+	MAP_DEVICE,
+	MAP_DDR,
 	{0}
 };
 #endif
