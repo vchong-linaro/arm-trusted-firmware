@@ -15,6 +15,9 @@ How to build
    * ARM Trusted Firmware:
    [link](https://github.com/ARM-software/arm-trusted-firmware)
 
+   * OP-TEE:
+   [link](https://github.com/OP-TEE/optee_os)
+
    * edk2:
    [link](https://github.com/96boards-hikey/edk2/tree/testing/hikey960_v2.5)
 
@@ -54,7 +57,7 @@ How to build
      <br>`EDK2_OUTPUT_DIR=${EDK2_DIR}/Build/HiKey960/${BUILD_OPTION}_${AARCH64_TOOLCHAIN}`</br>
      <br>`cd ${EDK2_DIR}`</br>
      <br>`# Build UEFI & ARM Trust Firmware`</br>
-     <br>`${UEFI_TOOLS_DIR}/uefi-build.sh -b ${BUILD_OPTION} -a ../arm-trusted-firmware hikey960`</br>
+     <br>`${UEFI_TOOLS_DIR}/uefi-build.sh -b ${BUILD_OPTION} -a ../arm-trusted-firmware -s ../optee_os hikey960`</br>
      <br>`# Generate l-loader.bin`</br>
      <br>`cd ${BUILD_PATH}/l-loader`</br>
      <br>`ln -sf ${EDK2_OUTPUT_DIR}/FV/bl1.bin`</br>
