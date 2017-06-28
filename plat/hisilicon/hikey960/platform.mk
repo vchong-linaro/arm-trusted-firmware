@@ -74,6 +74,8 @@ BL31_SOURCES		+=	drivers/arm/cci/cci.c			\
 				${HIKEY960_GIC_SOURCES}
 
 # Enable workarounds for selected Cortex-A53 errata.
+ERRATA_A53_835769		:=	1
+ERRATA_A53_843419		:=	1
 ERRATA_A53_855873		:=	1
 ERRATA_A53_826319		:=	1
 ERRATA_A53_836870		:=	1
