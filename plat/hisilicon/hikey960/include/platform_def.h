@@ -108,7 +108,7 @@
 #define ADDR_SPACE_SIZE			(1ull << 32)
 
 #if IMAGE_BL1 || IMAGE_BL2 || IMAGE_BL31 || IMAGE_BL32
-#define MAX_XLAT_TABLES			3
+#define MAX_XLAT_TABLES			4
 #endif
 
 #define MAX_MMAP_REGIONS		16
