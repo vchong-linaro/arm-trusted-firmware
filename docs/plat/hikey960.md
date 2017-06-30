@@ -61,7 +61,6 @@ How to build
      <br>`# Generate l-loader.bin`</br>
      <br>`cd ${BUILD_PATH}/l-loader`</br>
      <br>`ln -sf ${EDK2_OUTPUT_DIR}/FV/bl1.bin`</br>
-     <br>`ln -sf ${EDK2_OUTPUT_DIR}/FV/fip.bin`</br>
      <br>`ln -sf ${EDK2_OUTPUT_DIR}/FV/BL33_AP_UEFI.fd`</br>
      <br>`python gen_loader.py -o l-loader.bin --img_bl1=bl1.bin --img_ns_bl1u=BL33_AP_UEFI.fd`</br>
 

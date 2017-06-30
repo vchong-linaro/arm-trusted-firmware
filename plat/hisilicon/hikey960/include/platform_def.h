@@ -68,8 +68,11 @@
  */
 
 /*
- * The TSP currently only executes from DRAM.
+ * The TSP currently executes from TZC secured area of DRAM or SRAM.
  */
+#define BL32_SRAM_BASE                  BL31_LIMIT
+#define BL32_SRAM_LIMIT                 (BL31_LIMIT+0x80000) /* 512K */
+
 #define BL32_DRAM_BASE                  DDR_SEC_BASE
 #define BL32_DRAM_LIMIT                 (DDR_SEC_BASE+DDR_SEC_SIZE)
 
@@ -78,6 +81,11 @@
 #define TSP_SEC_MEM_SIZE		(BL32_DRAM_LIMIT - BL32_DRAM_BASE)
 #define BL32_BASE			BL32_DRAM_BASE
 #define BL32_LIMIT			BL32_DRAM_LIMIT
+#elif (HIKEY960_TSP_RAM_LOCATION_ID == HIKEY960_SRAM_ID)
+#define TSP_SEC_MEM_BASE		BL32_SRAM_BASE
+#define TSP_SEC_MEM_SIZE		(BL32_SRAM_LIMIT - BL32_SRAM_BASE)
+#define BL32_BASE			BL32_SRAM_BASE
+#define BL32_LIMIT			BL32_SRAM_LIMIT
 #else
 #error "Currently unsupported HIKEY960_TSP_LOCATION_ID value"
 #endif

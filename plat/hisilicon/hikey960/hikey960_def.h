@@ -17,7 +17,8 @@
 #define DEVICE_SIZE			0x20000000
 
 /* Memory location options for TSP */
-#define HIKEY960_DRAM_ID	0
+#define HIKEY960_SRAM_ID	0
+#define HIKEY960_DRAM_ID	1
 
 /*
  * DDR (1 GB) at 0x0000_0000 is divided in several regions:

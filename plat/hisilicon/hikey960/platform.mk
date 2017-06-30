@@ -4,10 +4,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-# On Hikey, the TSP currently only executes from DRAM.
+# On Hikey960, the TSP can execute from TZC secure area in DRAM (default)
+# or SRAM.
 HIKEY960_TSP_RAM_LOCATION	:=	dram
 ifeq (${HIKEY960_TSP_RAM_LOCATION}, dram)
   HIKEY960_TSP_RAM_LOCATION_ID = HIKEY960_DRAM_ID
+else ifeq (${HIKEY960_TSP_RAM_LOCATION}, sram)
+  HIKEY960_TSP_RAM_LOCATION_ID := HIKEY960_SRAM_ID
 else
   $(error "Currently unsupported HIKEY960_TSP_RAM_LOCATION value")
 endif
