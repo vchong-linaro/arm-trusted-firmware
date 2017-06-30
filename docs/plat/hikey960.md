@@ -66,7 +66,7 @@ How to build
 
    * Generate partition table.
      <br>_Make sure that you're using the sgdisk in the l-loader directory._</br>
-     <br>`$PTABLE=aosp-32g SECTOR_SIZE=4096 SGDISK=./sgdisk bash -x generate_ptable.sh`</br>
+     <br>`PTABLE=aosp-32g SECTOR_SIZE=4096 SGDISK=./sgdisk bash -x generate_ptable.sh`</br>
 
 
 3. Setup Console
