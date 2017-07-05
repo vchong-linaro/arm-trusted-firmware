@@ -100,7 +100,7 @@ How to build
    * Prepare config file.
      <br>_$vi config_</br>
      <br>_# The content of config file_</br>
-     <br>`./sec_user_xloader.img 0x00020000`</br>
+     <br>`./sec_usb_xloader.img 0x00020000`</br>
      <br>`./sec_uce_boot.img 0x6A908000`</br>
      <br>`./l-loader.bin 0x1AC00000`</br>
 
