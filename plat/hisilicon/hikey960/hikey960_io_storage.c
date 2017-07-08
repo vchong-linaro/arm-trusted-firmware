@@ -134,10 +134,15 @@ static int check_fip(const uintptr_t spec)
 	int result;
 	uintptr_t local_image_handle;
 
+	VERBOSE("check_fip\n");
+	VERBOSE("spec = 0x%x\n", spec.uuid);
+
 	/* See if a Firmware Image Package is available */
 	result = io_dev_init(fip_dev_handle, (uintptr_t)FIP_IMAGE_ID);
+	VERBOSE("result1 = %s\n", result);
 	if (result == 0) {
 		result = io_open(fip_dev_handle, spec, &local_image_handle);
+		VERBOSE("result2 = %s\n", result);
 		if (result == 0) {
 			VERBOSE("Using FIP\n");
 			io_close(local_image_handle);
@@ -180,6 +185,7 @@ int plat_get_image_source(unsigned int image_id, uintptr_t *dev_handle,
 
 	policy = &policies[image_id];
 	result = policy->check(policy->image_spec);
+	VERBOSE("plat_get_image_source: image_id %u result %d\n", image_id, result);
 	assert(result == 0);
 
 	*image_spec = policy->image_spec;

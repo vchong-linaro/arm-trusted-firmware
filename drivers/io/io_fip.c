@@ -108,6 +108,7 @@ static const io_dev_info_t fip_dev_info = {
 static int fip_dev_open(const uintptr_t dev_spec __unused,
 			 io_dev_info_t **dev_info)
 {
+	VERBOSE("fip_dev_open\n");
 	assert(dev_info != NULL);
 	*dev_info = (io_dev_info_t *)&fip_dev_info; /* cast away const */
 
@@ -123,6 +124,8 @@ static int fip_dev_init(io_dev_info_t *dev_info, const uintptr_t init_params)
 	uintptr_t backend_handle;
 	fip_toc_header_t header;
 	size_t bytes_read;
+
+	VERBOSE("fip_dev_init calling plat_get_image_source\n");
 
 	/* Obtain a reference to the image by querying the platform layer */
 	result = plat_get_image_source(image_id, &backend_dev_handle,
@@ -147,6 +150,7 @@ static int fip_dev_init(io_dev_info_t *dev_info, const uintptr_t init_params)
 			&bytes_read);
 	if (result == 0) {
 		if (!is_valid_header(&header)) {
+			WARN("name = 0x%x, serial = 0x%x\n", header.name, header.serial_number);
 			WARN("Firmware Image Package header check failed.\n");
 			result = -ENOENT;
 		} else {
