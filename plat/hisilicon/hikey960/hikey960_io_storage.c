@@ -136,14 +136,16 @@ static int check_fip(const uintptr_t spec)
 	io_uuid_spec_t *spec_p = (io_uuid_spec_t *)spec;
 
 	VERBOSE("check_fip\n");
-	VERBOSE("spec = 0x%x\n", spec_p->uuid);
+	VERBOSE("spec lo = 0x%x\n", spec_p->uuid.time_low);
+	VERBOSE("spec mid = 0x%x\n", spec_p->uuid.time_mid);
+	VERBOSE("spec high = 0x%x\n", spec_p->uuid.time_hi_and_version);
 
 	/* See if a Firmware Image Package is available */
 	result = io_dev_init(fip_dev_handle, (uintptr_t)FIP_IMAGE_ID);
-	VERBOSE("result1 = %s\n", result);
+	VERBOSE("result1 = %d\n", result);
 	if (result == 0) {
 		result = io_open(fip_dev_handle, spec, &local_image_handle);
-		VERBOSE("result2 = %s\n", result);
+		VERBOSE("result2 = %d\n", result);
 		if (result == 0) {
 			VERBOSE("Using FIP\n");
 			io_close(local_image_handle);
