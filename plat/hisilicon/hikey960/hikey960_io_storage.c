@@ -135,7 +135,7 @@ static int check_fip(const uintptr_t spec)
 	uintptr_t local_image_handle;
 
 	VERBOSE("check_fip\n");
-	VERBOSE("spec = 0x%x\n", spec.uuid);
+	VERBOSE("spec = 0x%x\n", (io_uuid_spec_t *)spec->uuid);
 
 	/* See if a Firmware Image Package is available */
 	result = io_dev_init(fip_dev_handle, (uintptr_t)FIP_IMAGE_ID);
