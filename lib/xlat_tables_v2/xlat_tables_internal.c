@@ -568,12 +568,12 @@ void print_mmap(mmap_region_t *const mmap)
 	mmap_region_t *mm = mmap;
 
 	while (mm->size) {
-		tf_printf(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
-				(void *)mm->base_va, mm->base_pa,
-				mm->size, mm->attr);
+		//tf_printf(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
+		//		(void *)mm->base_va, mm->base_pa,
+		//		mm->size, mm->attr);
 		++mm;
 	};
-	tf_printf("\n");
+	//tf_printf("\n");
 #endif
 }
 
@@ -978,9 +978,9 @@ static void xlat_tables_print_internal(const uintptr_t table_base_va,
 		if ((desc & DESC_MASK) == INVALID_DESC) {
 
 			if (invalid_row_count == 0) {
-				tf_printf("%sVA:%p size:0x%zx\n",
-					  level_spacers[level],
-					  (void *)table_idx_va, level_size);
+				//tf_printf("%sVA:%p size:0x%zx\n",
+				//	  level_spacers[level],
+				//	  (void *)table_idx_va, level_size);
 			}
 			invalid_row_count++;
 
@@ -1006,9 +1006,9 @@ static void xlat_tables_print_internal(const uintptr_t table_base_va,
 				 * but instead points to the next translation
 				 * table in the translation table walk.
 				 */
-				tf_printf("%sVA:%p size:0x%zx\n",
-					  level_spacers[level],
-					  (void *)table_idx_va, level_size);
+				//tf_printf("%sVA:%p size:0x%zx\n",
+				//	  level_spacers[level],
+				//	  (void *)table_idx_va, level_size);
 
 				uintptr_t addr_inner = desc & TABLE_ADDR_MASK;
 
@@ -1017,13 +1017,13 @@ static void xlat_tables_print_internal(const uintptr_t table_base_va,
 					XLAT_TABLE_ENTRIES, level+1,
 					execute_never_mask);
 			} else {
-				tf_printf("%sVA:%p PA:0x%llx size:0x%zx ",
-					  level_spacers[level],
-					  (void *)table_idx_va,
-					  (unsigned long long)(desc & TABLE_ADDR_MASK),
-					  level_size);
+				//tf_printf("%sVA:%p PA:0x%llx size:0x%zx ",
+				//	  level_spacers[level],
+				//	  (void *)table_idx_va,
+				//	  (unsigned long long)(desc & TABLE_ADDR_MASK),
+				//	  level_size);
 				xlat_desc_print(desc, execute_never_mask);
-				tf_printf("\n");
+				//tf_printf("\n");
 			}
 		}
 

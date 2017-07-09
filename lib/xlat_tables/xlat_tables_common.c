@@ -55,12 +55,12 @@ void print_mmap(void)
 	debug_print("mmap:\n");
 	mmap_region_t *mm = mmap;
 	while (mm->size) {
-		debug_print(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
-				(void *)mm->base_va, mm->base_pa,
-				mm->size, mm->attr);
+		//debug_print(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
+		//		(void *)mm->base_va, mm->base_pa,
+		//		mm->size, mm->attr);
 		++mm;
 	};
-	debug_print("\n");
+	//debug_print("\n");
 #endif
 }
 
@@ -333,8 +333,8 @@ static mmap_region_t *init_xlation_table_inner(mmap_region_t *mm,
 			continue;
 		}
 
-		debug_print("%s VA:%p size:0x%llx ", get_level_spacer(level),
-			(void *)base_va, (unsigned long long)level_size);
+		//debug_print("%s VA:%p size:0x%llx ", get_level_spacer(level),
+		//	(void *)base_va, (unsigned long long)level_size);
 
 		if (mm->base_va > base_va + level_size - 1) {
 			/* Next region is after this area. Nothing to map yet */
