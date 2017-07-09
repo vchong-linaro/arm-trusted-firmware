@@ -568,12 +568,12 @@ void print_mmap(mmap_region_t *const mmap)
 	mmap_region_t *mm = mmap;
 
 	while (mm->size) {
-		//tf_printf(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
-		//		(void *)mm->base_va, mm->base_pa,
-		//		mm->size, mm->attr);
+		tf_printf(" VA:%p  PA:0x%llx  size:0x%zx  attr:0x%x\n",
+				(void *)mm->base_va, mm->base_pa,
+				mm->size, mm->attr);
 		++mm;
 	};
-	//tf_printf("\n");
+	tf_printf("\n");
 #endif
 }
 
