@@ -155,7 +155,7 @@ static int32_t opteed_init(void)
 	entry_point_info_t *optee_entry_point;
 	uint64_t rc;
 
-	VERBOSE("opteed_init1\n");
+	//VERBOSE("opteed_init1\n");
 
 	/*
 	 * Get information about the OPTEE (BL32) image. Its
@@ -164,11 +164,11 @@ static int32_t opteed_init(void)
 	optee_entry_point = bl31_plat_get_next_image_ep_info(SECURE);
 	assert(optee_entry_point);
 
-	VERBOSE("opteed_init2\n");
+	//VERBOSE("opteed_init2\n");
 
 	cm_init_my_context(optee_entry_point);
 
-	VERBOSE("opteed_init3\n");
+	//VERBOSE("opteed_init3\n");
 
 	/*
 	 * Arrange for an entry into OPTEE. It will be returned via
@@ -177,7 +177,7 @@ static int32_t opteed_init(void)
 	rc = opteed_synchronous_sp_entry(optee_ctx);
 	assert(rc != 0);
 
-	VERBOSE("opteed_init4\n");
+	//VERBOSE("opteed_init4\n");
 
 	return rc;
 }

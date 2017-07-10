@@ -389,7 +389,7 @@ int load_image(meminfo_t *mem_layout,
 	size_t bytes_read;
 	int io_result;
 
-	VERBOSE("load_image\n");
+	//VERBOSE("load_image\n");
 
 	assert(mem_layout != NULL);
 	assert(image_data != NULL);

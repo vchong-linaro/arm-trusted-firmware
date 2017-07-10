@@ -85,7 +85,7 @@ static int load_bl31(bl31_params_t *bl2_to_bl31_params,
 	/* Find out how much free trusted ram remains after BL2 load */
 	bl2_tzram_layout = bl2_plat_sec_mem_layout();
 
-	INFO("BL2: 1\n");
+	//INFO("BL2: 1\n");
 
 	/* Set the X0 parameter to BL31 */
 	bl31_ep_info->args.arg0 = (unsigned long)bl2_to_bl31_params;
@@ -97,7 +97,7 @@ static int load_bl31(bl31_params_t *bl2_to_bl31_params,
 			    bl2_to_bl31_params->bl31_image_info,
 			    bl31_ep_info);
 
-	INFO("BL2: e = %d\n", e);
+	//INFO("BL2: e = %d\n", e);
 
 	if (e == 0) {
 		bl2_plat_set_bl31_ep_info(bl2_to_bl31_params->bl31_image_info,

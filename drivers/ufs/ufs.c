@@ -475,7 +475,7 @@ static void ufs_verify_init(void)
 	utp_utrd_t utrd;
 	int result;
 
-	VERBOSE("ufs_verify_init\n");
+	//VERBOSE("ufs_verify_init\n");
 
 	get_utrd(&utrd);
 	ufs_prepare_nop_out(&utrd);
@@ -490,7 +490,7 @@ static void ufs_verify_ready(void)
 	utp_utrd_t utrd;
 	int result;
 
-	VERBOSE("ufs_verify_ready\n");
+	//VERBOSE("ufs_verify_ready\n");
 
 	get_utrd(&utrd);
 	ufs_prepare_cmd(&utrd, CDBCMD_TEST_UNIT_READY, 0, 0, 0, 0);
@@ -567,7 +567,7 @@ unsigned int ufs_read_flag(int idn)
 
 void ufs_set_flag(int idn)
 {
-	VERBOSE("ufs_set_flag\n");
+	//VERBOSE("ufs_set_flag\n");
 	ufs_query(QUERY_SET_FLAG, idn, 0, 0, 0, 0);
 }
 
@@ -596,7 +596,7 @@ void ufs_read_capacity(int lun, unsigned int *num, unsigned int *size)
 	int result;
 	int retry;
 
-	VERBOSE("ufs_read_capacity\n");
+	//VERBOSE("ufs_read_capacity\n");
 
 	assert((ufs_params.reg_base != 0) &&
 	       (ufs_params.desc_base != 0) &&
@@ -692,7 +692,7 @@ static void ufs_enum(void)
 	unsigned int blk_num, blk_size;
 	int i;
 
-	VERBOSE("ufs_enum\n");
+	//VERBOSE("ufs_enum\n");
 
 	/* 0 means 1 slot */
 	nutrs = (mmio_read_32(ufs_params.reg_base + CAP) & CAP_NUTRS_MASK) + 1;
@@ -720,7 +720,7 @@ int ufs_init(const ufs_ops_t *ops, ufs_params_t *params)
 	unsigned int data;
 	uic_cmd_t cmd;
 
-	VERBOSE("ufs_init\n");
+	//VERBOSE("ufs_init\n");
 
 	assert((params != NULL) &&
 	       (params->reg_base != 0) &&
@@ -765,7 +765,7 @@ int ufs_init(const ufs_ops_t *ops, ufs_params_t *params)
 	}
 
 	ufs_enum();
-	VERBOSE("result = %d\n", result);
+	//VERBOSE("result = %d\n", result);
 	(void)result;
 	return 0;
 }

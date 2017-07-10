@@ -68,7 +68,7 @@ entry_point_info_t *bl31_plat_get_next_image_ep_info(unsigned int type)
 {
 	entry_point_info_t *next_image_info;
 
-	VERBOSE("bl31_plat_get_next_image_ep_info %u (0 secure, 1 non_secure)\n", type);
+	//VERBOSE("bl31_plat_get_next_image_ep_info %u (0 secure, 1 non_secure)\n", type);
 
 	next_image_info = (type == NON_SECURE) ? &bl33_ep_info : &bl32_ep_info;
 

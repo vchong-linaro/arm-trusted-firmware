@@ -182,11 +182,11 @@ int io_dev_init(uintptr_t dev_handle, const uintptr_t init_params)
 
 	/* Absence of registered function implies NOP here */
 	if (dev->funcs->dev_init != NULL) {
-		VERBOSE("io_dev_init calling dev->funcs->dev_init\n");
+		//VERBOSE("io_dev_init calling dev->funcs->dev_init\n");
 		result = dev->funcs->dev_init(dev, init_params);
 	}
 
-	VERBOSE("result = %d\n", result);
+	//VERBOSE("result = %d\n", result);
 	return result;
 }
 
@@ -225,11 +225,11 @@ int io_open(uintptr_t dev_handle, const uintptr_t spec, uintptr_t *handle)
 	io_entity_t *entity;
 
 	result = allocate_entity(&entity);
-	VERBOSE("io_open result1 = %d\n", result);
+	//VERBOSE("io_open result1 = %d\n", result);
 
 	if (result == 0) {
 		assert(dev->funcs->open != NULL);
-		VERBOSE("io_open calling dev->funcs->open\n");
+		//VERBOSE("io_open calling dev->funcs->open\n");
 		result = dev->funcs->open(dev, spec, entity);
 
 		if (result == 0) {
@@ -238,7 +238,7 @@ int io_open(uintptr_t dev_handle, const uintptr_t spec, uintptr_t *handle)
 		} else
 			free_entity(entity);
 	}
-	VERBOSE("io_open result2 = %d\n", result);
+	//VERBOSE("io_open result2 = %d\n", result);
 	return result;
 }
 

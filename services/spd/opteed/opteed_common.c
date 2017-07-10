@@ -65,7 +65,7 @@ uint64_t opteed_synchronous_sp_entry(optee_context_t *optee_ctx)
 {
 	uint64_t rc;
 
-	VERBOSE("opteed_synchronous_sp_entry1\n");
+	//VERBOSE("opteed_synchronous_sp_entry1\n");
 
 	assert(optee_ctx != NULL);
 	assert(optee_ctx->c_rt_ctx == 0);
@@ -73,16 +73,16 @@ uint64_t opteed_synchronous_sp_entry(optee_context_t *optee_ctx)
 	/* Apply the Secure EL1 system register context and switch to it */
 	assert(cm_get_context(SECURE) == &optee_ctx->cpu_ctx);
 	cm_el1_sysregs_context_restore(SECURE);
-	VERBOSE("opteed_synchronous_sp_entry2\n");
+	//VERBOSE("opteed_synchronous_sp_entry2\n");
 	cm_set_next_eret_context(SECURE);
-	VERBOSE("opteed_synchronous_sp_entry3\n");
+	//VERBOSE("opteed_synchronous_sp_entry3\n");
 
 	rc = opteed_enter_sp(&optee_ctx->c_rt_ctx);
 #if DEBUG
 	optee_ctx->c_rt_ctx = 0;
 #endif
 
-	VERBOSE("opteed_synchronous_sp_entry4\n");
+	//VERBOSE("opteed_synchronous_sp_entry4\n");
 	return rc;
 }
 
