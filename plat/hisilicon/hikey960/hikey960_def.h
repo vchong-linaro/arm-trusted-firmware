@@ -29,14 +29,11 @@
  *   - Non-Secure DDR (remaining DDR starting at DDR_BASE)
  */
 #define DDR_SEC_SIZE			0x01000000
-#define DDR_SEC_BASE			(DDR_BASE + DDR_SIZE - DDR_SEC_SIZE)
+#define DDR_SEC_BASE			0x3E000000
 
 #define DDR_SDP_SIZE			0x00400000
 #define DDR_SDP_BASE			(DDR_SEC_BASE - 0x400000 /* align */ - \
 					DDR_SDP_SIZE)
-
-#define DDR_NS_BASE			DDR_BASE
-#define DDR_NS_SIZE			(DDR_SIZE - DDR_SEC_SIZE)
 
 #define SRAM_BASE			0xFFF80000
 #define SRAM_SIZE			0x00012000

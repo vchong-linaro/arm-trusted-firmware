@@ -923,6 +923,8 @@ static void xlat_desc_print(uint64_t desc, uint64_t execute_never_mask)
 {
 	int mem_type_index = ATTR_INDEX_GET(desc);
 
+	return;
+
 	if (mem_type_index == ATTR_IWBWA_OWBWA_NTR_INDEX) {
 		tf_printf("MEM");
 	} else if (mem_type_index == ATTR_NON_CACHEABLE_INDEX) {
@@ -987,9 +989,9 @@ static void xlat_tables_print_internal(const uintptr_t table_base_va,
 		} else {
 
 			if (invalid_row_count > 1) {
-				tf_printf(invalid_descriptors_ommited,
-					  level_spacers[level],
-					  invalid_row_count - 1);
+				//tf_printf(invalid_descriptors_ommited,
+				//	  level_spacers[level],
+				//	  invalid_row_count - 1);
 			}
 			invalid_row_count = 0;
 
@@ -1031,9 +1033,9 @@ static void xlat_tables_print_internal(const uintptr_t table_base_va,
 		table_idx_va += level_size;
 	}
 
-	if (invalid_row_count > 1) {
-		tf_printf(invalid_descriptors_ommited,
-			  level_spacers[level], invalid_row_count - 1);
+	//if (invalid_row_count > 1) {
+	//	tf_printf(invalid_descriptors_ommited,
+	//		  level_spacers[level], invalid_row_count - 1);
 	}
 }
 

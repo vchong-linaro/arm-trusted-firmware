@@ -10,6 +10,11 @@
 #include <arch.h>
 #include "../hikey960_def.h"
 
+/*
+ * Platform binary types for linking
+ */
+#define PLATFORM_LINKER_FORMAT          "elf64-littleaarch64"
+#define PLATFORM_LINKER_ARCH            aarch64
 
 /*
  * Generic platform constants
@@ -70,8 +75,8 @@
 /*
  * The TSP currently executes from TZC secured area of DRAM or SRAM.
  */
-#define BL32_SRAM_BASE                  BL31_LIMIT
-#define BL32_SRAM_LIMIT                 (BL31_LIMIT+0x80000) /* 512K */
+#define BL32_SRAM_BASE                  NS_BL1U_LIMIT
+#define BL32_SRAM_LIMIT                 (NS_BL1U_LIMIT+0x80000) /* 512K */
 
 #define BL32_DRAM_BASE                  DDR_SEC_BASE
 #define BL32_DRAM_LIMIT                 (DDR_SEC_BASE+DDR_SEC_SIZE)
