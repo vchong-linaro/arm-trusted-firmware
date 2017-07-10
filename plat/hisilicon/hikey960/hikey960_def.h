@@ -52,8 +52,8 @@
 #define UFS_BASE			0
 /* FIP partition */
 #define HIKEY960_FIP_BASE		(UFS_BASE + 0x1400000)
-//#define HIKEY960_FIP_MAX_SIZE		(12 << 20)
-#define HIKEY960_FIP_MAX_SIZE		(12 << 21)
+#define HIKEY960_FIP_MAX_SIZE		(12 << 20)
+//#define HIKEY960_FIP_MAX_SIZE		(12 << 21)
 
 #define HIKEY960_UFS_DESC_BASE		0x20000000
 #define HIKEY960_UFS_DESC_SIZE		0x00200000	/* 2MB */

@@ -28,7 +28,7 @@ How to build
    [link](https://github.com/96boards-hikey/l-loader/tree/testing/hikey960_v1.2)
 
    * uefi-tools:
-   [link](https://github.com/96boards-hikey/uefi-tools/tree/hikey960_v1)
+   [link](https://git.linaro.org/uefi/uefi-tools.git)
 
 
 2. Build Procedure
