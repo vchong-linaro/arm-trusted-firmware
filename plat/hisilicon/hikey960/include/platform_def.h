@@ -102,7 +102,7 @@
 #define HIKEY960_NS_IMAGE_OFFSET	(0x1AC18000)	/* offset in l-loader */
 #define HIKEY960_NS_TMP_OFFSET		(0x1AE00000)
 
-#define SCP_BL2_BASE			BL31_BASE
+#define SCP_BL2_BASE			BL31_BASE /* 1AC5_8000 */
 
 #define SCP_MEM_BASE			(0x89C80000)
 #define SCP_MEM_SIZE			(0x00040000)
