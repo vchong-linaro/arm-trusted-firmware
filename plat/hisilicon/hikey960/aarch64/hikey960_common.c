@@ -41,6 +41,13 @@
 					TSP_SEC_MEM_SIZE,		\
 					MT_MEMORY | MT_RW | MT_SECURE)
 
+#ifdef SPD_opteed
+#define MAP_OPTEE_PAGEABLE	MAP_REGION_FLAT(		\
+					HIKEY960_OPTEE_PAGEABLE_LOAD_BASE,	\
+					HIKEY960_OPTEE_PAGEABLE_LOAD_SIZE,	\
+					MT_MEMORY | MT_RW | MT_SECURE)
+#endif
+
 /*
  * Table of regions for different BL stages to map using the MMU.
  * This doesn't include Trusted RAM as the 'mem_layout' argument passed to
@@ -61,6 +68,9 @@ static const mmap_region_t hikey960_mmap[] = {
 	MAP_DDR,
 	MAP_DEVICE,
 	MAP_TSP_MEM,
+#ifdef SPD_opteed
+	MAP_OPTEE_PAGEABLE,
+#endif
 	{0}
 };
 #endif
