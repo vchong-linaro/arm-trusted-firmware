@@ -149,12 +149,12 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
 	    SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
 		    VERSION_2, image_info_t, IMAGE_ATTRIB_SKIP_LOADING),
 # else
-	    .ep_info.pc = HIKEY_NS_IMAGE_OFFSET,
+	    .ep_info.pc = HIKEY_NS_IMAGE_OFFSET /* NS_BL1U_BASE //NO! WONT BOOT! */ /* HIKEY_NS_IMAGE_OFFSET */,
 
 	    SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
 		    VERSION_2, image_info_t, 0),
-	    .image_info.image_base = HIKEY_NS_IMAGE_OFFSET,
-	    .image_info.image_max_size = 0x3E000000 - HIKEY_NS_IMAGE_OFFSET,
+	    .image_info.image_base = HIKEY_NS_IMAGE_OFFSET /* NS_BL1U_BASE //NO! WONT BOOT! */ /* HIKEY_NS_IMAGE_OFFSET */,
+	    .image_info.image_max_size = 0x200000 /* 2MB */ /* TRY 0x3E000000 - HIKEY_NS_IMAGE_OFFSET = 0x900_0000 !! */,
 # endif /* PRELOADED_BL33_BASE */
 
 	    .next_handoff_image_id = INVALID_IMAGE_ID,

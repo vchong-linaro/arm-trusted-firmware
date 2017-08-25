@@ -17,8 +17,10 @@
 #include <hisi_mcu.h>
 #include <hisi_sram_map.h>
 #include <mmio.h>
+#if LOAD_IMAGE_V2
 #ifdef SPD_opteed
 #include <optee_utils.h>
+#endif
 #endif
 #include <platform_def.h>
 #include <sp804_delay_timer.h>
@@ -477,6 +479,9 @@ void bl2_early_platform_setup(meminfo_t *mem_layout)
 
 void bl2_plat_arch_setup(void)
 {
+	INFO("bl2_tzram_layout->total_base %p bl2_tzram_layout->total_size 0x%lx\n", (void *)bl2_tzram_layout.total_base, bl2_tzram_layout.total_size);
+	INFO("BL2_RO_BASE 0x%lx BL2_RO_LIMIT 0x%lx BL2_COHERENT_RAM_BASE 0x%lx BL2_COHERENT_RAM_LIMIT 0x%lx\n", BL2_RO_BASE, BL2_RO_LIMIT, BL2_COHERENT_RAM_BASE, BL2_COHERENT_RAM_LIMIT);
+
 	hikey_init_mmu_el1(bl2_tzram_layout.total_base,
 			   bl2_tzram_layout.total_size,
 			   BL2_RO_BASE,

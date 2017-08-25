@@ -121,6 +121,14 @@ int32_t opteed_setup(void)
 	if (!optee_ep_info->pc)
 		return 1;
 
+	INFO("opteed_rw=0x%lx\n", optee_ep_info->args.arg0);
+	INFO("opteed_pageable_part=0x%lx\n", optee_ep_info->args.arg1);
+	INFO("opteed_mem_limit=0x%lx %lu\n", optee_ep_info->args.arg2, optee_ep_info->args.arg2);
+
+	/*
+	 * We could inspect the SP image and determine it's execution
+	 * state i.e whether AArch32 or AArch64.
+	 */
 	opteed_rw = optee_ep_info->args.arg0;
 	opteed_pageable_part = optee_ep_info->args.arg1;
 	opteed_mem_limit = optee_ep_info->args.arg2;
@@ -133,6 +141,10 @@ int32_t opteed_setup(void)
 				opteed_mem_limit,
 				dt_addr,
 				&opteed_sp_context[linear_id]);
+
+	INFO("opteed_pageable_part=0x%lx\n", optee_ep_info->args.arg0);
+	INFO("opteed_mem_limit=0x%lx %lu\n", optee_ep_info->args.arg1, optee_ep_info->args.arg1);
+	INFO("opteed_mem_limit=0x%lx %lud\n", optee_ep_info->args.arg2, optee_ep_info->args.arg2);
 
 	/*
 	 * All OPTEED initialization done. Now register our init function with

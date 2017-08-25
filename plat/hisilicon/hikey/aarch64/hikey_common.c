@@ -28,15 +28,18 @@
 					TSP_SEC_MEM_SIZE,		\
 					MT_MEMORY | MT_RW | MT_SECURE)
 
+#if LOAD_IMAGE_V2
 #ifdef SPD_opteed
 #define MAP_OPTEE_PAGEABLE	MAP_REGION_FLAT(		\
 					HIKEY_OPTEE_PAGEABLE_LOAD_BASE,	\
 					HIKEY_OPTEE_PAGEABLE_LOAD_SIZE,	\
 					MT_MEMORY | MT_RW | MT_SECURE)
 #endif
+#endif
 
+/* NO! DONT TRY 2 COVER BL3* AREAS HERE COS ROM_PARAM MAPPED S RO!! */
 #define MAP_ROM_PARAM	MAP_REGION_FLAT(XG2RAM0_BASE,			\
-					BL1_XG2RAM0_OFFSET,		\
+					BL1_XG2RAM0_OFFSET /* 0x118000 */ /* 0x98000 */ /* BL1_XG2RAM0_OFFSET */,		\
 					MT_DEVICE | MT_RO | MT_SECURE)
 
 #define MAP_SRAM	MAP_REGION_FLAT(SRAM_BASE,			\
@@ -60,6 +63,7 @@
 #if IMAGE_BL1
 static const mmap_region_t hikey_mmap[] = {
 	MAP_DEVICE,
+	//MAP_DDR,
 	MAP_ROM_PARAM,
 	MAP_MMC_SRAM,
 	{0}
@@ -70,9 +74,13 @@ static const mmap_region_t hikey_mmap[] = {
 static const mmap_region_t hikey_mmap[] = {
 	MAP_DDR,
 	MAP_DEVICE,
+	//MAP_ROM_PARAM,
+	//MAP_SRAM,
 	MAP_TSP_MEM,
+#if LOAD_IMAGE_V2
 #ifdef SPD_opteed
 	MAP_OPTEE_PAGEABLE,
+#endif
 #endif
 	{0}
 };
@@ -81,6 +89,8 @@ static const mmap_region_t hikey_mmap[] = {
 #if IMAGE_BL31
 static const mmap_region_t hikey_mmap[] = {
 	MAP_DEVICE,
+	//MAP_ROM_PARAM,
+	//MAP_DDR,
 	MAP_SRAM,
 	MAP_TSP_MEM,
 	{0}
@@ -128,6 +138,7 @@ HIKEY_CONFIGURE_MMU_EL(3)
 
 unsigned long plat_get_ns_image_entrypoint(void)
 {
+	//return NS_BL1U_BASE;
 	return HIKEY_NS_IMAGE_OFFSET;
 }
 

@@ -78,11 +78,31 @@
 #define BL1_RW_SIZE			(0x00088000)
 #define BL1_RW_LIMIT			(0xF9898000)
 
+#if 0 //LOAD_IMAGE_V2
+/*
+ * BL2 specific defines.
+ */
+#define BL2_BASE			(BL2_LIMIT - 0x40000)	/* 0xf985_8000 */
+#define BL2_LIMIT			BL1_RW_LIMIT /* 0xf989_8000 */
+
+/*
+ * BL31 specific defines.
+ */
+#define BL31_BASE			BL1_RW_BASE /* 0xf981_0000 or 0xf981_8000? */
+#define BL31_LIMIT			BL2_BASE /* 0xf985_8000 */
+#else /* LOAD_IMAGE_V2 */
 /*
  * BL2 specific defines.
  */
 #define BL2_BASE			(BL1_RW_BASE + 0x8000)	/* 0xf981_8000 */
 #define BL2_LIMIT			(BL2_BASE + 0x40000)
+
+/*
+ * BL31 specific defines.
+ */
+#define BL31_BASE			BL2_LIMIT /* 0xf985_8000 */
+#define BL31_LIMIT			0xF9898000 /* (0xF9898000 + 0x80000) */
+#endif /* LOAD_IMAGE_V2 */
 
 /*
  * SCP_BL2 specific defines.
@@ -93,12 +113,6 @@
 #define SCP_BL2_BASE			(DDR_BASE + 0x01000000)
 #define SCP_BL2_LIMIT			(SCP_BL2_BASE + 0x00100000)
 #define SCP_BL2_SIZE			(SCP_BL2_LIMIT - SCP_BL2_BASE)
-
-/*
- * BL31 specific defines.
- */
-#define BL31_BASE			BL2_LIMIT
-#define BL31_LIMIT			0xF9898000
 
 /*
  * BL3-2 specific defines.
@@ -113,10 +127,14 @@
 #define BL32_DRAM_BASE			DDR_SEC_BASE
 #define BL32_DRAM_LIMIT			(DDR_SEC_BASE+DDR_SEC_SIZE)
 
+#if LOAD_IMAGE_V2
 #ifdef SPD_opteed
 /* Load pageable part of OP-TEE at end of allocated DRAM space for BL32 */
-#define HIKEY_OPTEE_PAGEABLE_LOAD_BASE	(BL32_DRAM_LIMIT - HIKEY_OPTEE_PAGEABLE_LOAD_SIZE)
+#define HIKEY_OPTEE_PAGEABLE_LOAD_BASE	(BL32_DRAM_LIMIT - HIKEY_OPTEE_PAGEABLE_LOAD_SIZE) /* 0x3FC0_0000 */
+//#define HIKEY_OPTEE_PAGEABLE_LOAD_BASE	0x3F100000 /* NOK */
+//#define HIKEY_OPTEE_PAGEABLE_LOAD_BASE	0x3E400000 /* NOK */
 #define HIKEY_OPTEE_PAGEABLE_LOAD_SIZE	0x400000 /* 4MB */
+#endif
 #endif
 
 #if (HIKEY_TSP_RAM_LOCATION_ID == HIKEY_DRAM_ID)
@@ -142,19 +160,27 @@
  */
 #define ADDR_SPACE_SIZE			(1ull << 32)
 
-#if IMAGE_BL1 || IMAGE_BL32
+#if IMAGE_BL32
 #define MAX_XLAT_TABLES			3
+#endif
+
+#if IMAGE_BL1
+#define MAX_XLAT_TABLES			3 /* 4 */
 #endif
 
 #if IMAGE_BL31
-#define MAX_XLAT_TABLES			4
+#define MAX_XLAT_TABLES			4 /* 6 */
 #endif
 
 #if IMAGE_BL2
+#if LOAD_IMAGE_V2
 #ifdef SPD_opteed
-#define MAX_XLAT_TABLES			4
+#define MAX_XLAT_TABLES			4 /* 6 */
 #else
-#define MAX_XLAT_TABLES			3
+#define MAX_XLAT_TABLES			3 /* 5 */
+#endif
+#else
+#define MAX_XLAT_TABLES			3 /* 5 */
 #endif
 #endif
 

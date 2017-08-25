@@ -67,15 +67,20 @@ meminfo_t *bl1_plat_sec_mem_layout(void)
 void bl1_init_bl2_mem_layout(const meminfo_t *bl1_mem_layout,
 			     meminfo_t *bl2_mem_layout)
 {
+	INFO("LOAD_IMAGE_V2 %s:%d\n", __FILE__, __LINE__);
 
 	assert(bl1_mem_layout != NULL);
 	assert(bl2_mem_layout != NULL);
 
 	/*
-	 * Remove BL1 RW data from the scope of memory visible to BL2.
+	 * Cannot remove BL1 RW data from the scope of memory visible to BL2
+	 * like arm platforms because they overlap in hikey
 	 */
+	INFO("bl1_mem_layout->total_base %p bl1_mem_layout->total_size 0x%lx\n", (void *)bl1_mem_layout->total_base, bl1_mem_layout->total_size);
+	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
 	bl2_mem_layout->total_base = BL2_BASE;
-	bl2_mem_layout->total_size = BL2_LIMIT - BL2_BASE;
+	bl2_mem_layout->total_size = BL32_SRAM_LIMIT - BL2_BASE /* BL2_LIMIT - BL2_BASE //NO! NEED TO COVER/MAP BL3* STUFFS TOO */;
+	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
 
 	flush_dcache_range((unsigned long)bl2_mem_layout, sizeof(meminfo_t));
 }
@@ -104,7 +109,7 @@ void bl1_early_platform_setup(void)
 #endif
 
 	INFO("BL1: 0x%lx - 0x%lx [size = %lu]\n", BL1_RAM_BASE, BL1_RAM_LIMIT,
-	     BL1_RAM_LIMIT - BL1_RAM_BASE /* bl1_size */);
+	     BL1_RAM_LIMIT - BL1_RAM_BASE); /* bl1_size */
 }
 
 /*
@@ -114,6 +119,9 @@ void bl1_early_platform_setup(void)
  */
 void bl1_plat_arch_setup(void)
 {
+	INFO("bl1_tzram_layout->total_base %p bl1_tzram_layout->total_size 0x%lx\n", (void *)bl1_tzram_layout.total_base, bl1_tzram_layout.total_size);
+	INFO("BL1_RO_BASE 0x%x BL1_RO_LIMIT 0x%x BL1_COHERENT_RAM_BASE 0x%lx BL1_COHERENT_RAM_LIMIT 0x%lx\n", BL1_RO_BASE, BL1_RO_LIMIT, BL1_COHERENT_RAM_BASE, BL1_COHERENT_RAM_LIMIT);
+
 	hikey_init_mmu_el3(bl1_tzram_layout.total_base,
 			   bl1_tzram_layout.total_size,
 			   BL1_RO_BASE,

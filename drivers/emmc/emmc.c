@@ -148,13 +148,21 @@ size_t emmc_read_blocks(int lba, uintptr_t buf, size_t size)
 	emmc_cmd_t cmd;
 	int ret;
 
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+
 	assert((ops != 0) &&
 	       (ops->read != 0) &&
 	       ((buf & EMMC_BLOCK_MASK) == 0) &&
 	       ((size & EMMC_BLOCK_MASK) == 0));
 
 	inv_dcache_range(buf, size);
+
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+
 	ret = ops->prepare(lba, buf, size);
+
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+
 	assert(ret == 0);
 
 	if (is_cmd23_enabled()) {
@@ -163,30 +171,49 @@ size_t emmc_read_blocks(int lba, uintptr_t buf, size_t size)
 		cmd.cmd_idx = EMMC_CMD23;
 		cmd.cmd_arg = size / EMMC_BLOCK_SIZE;
 		cmd.resp_type = EMMC_RESPONSE_R1;
+
+		INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+
 		ret = ops->send_cmd(&cmd);
 		assert(ret == 0);
 
+		INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+
 		zeromem(&cmd, sizeof(emmc_cmd_t));
+
+		INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+
 		cmd.cmd_idx = EMMC_CMD18;
 	} else {
-		if (size > EMMC_BLOCK_SIZE)
+		if (size > EMMC_BLOCK_SIZE) {
 			cmd.cmd_idx = EMMC_CMD18;
-		else
+			INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+		}
+		else {
 			cmd.cmd_idx = EMMC_CMD17;
+			INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+		}
 	}
-	if ((emmc_ocr_value & OCR_ACCESS_MODE_MASK) == OCR_BYTE_MODE)
+	if ((emmc_ocr_value & OCR_ACCESS_MODE_MASK) == OCR_BYTE_MODE) {
 		cmd.cmd_arg = lba * EMMC_BLOCK_SIZE;
-	else
+		INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+	}
+	else {
 		cmd.cmd_arg = lba;
+		INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+	}
 	cmd.resp_type = EMMC_RESPONSE_R1;
 	ret = ops->send_cmd(&cmd);
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	assert(ret == 0);
 
 	ret = ops->read(lba, buf, size);
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	assert(ret == 0);
 
 	/* wait buffer empty */
 	emmc_device_state();
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 
 	if (is_cmd23_enabled() == 0) {
 		if (size > EMMC_BLOCK_SIZE) {
@@ -194,10 +221,13 @@ size_t emmc_read_blocks(int lba, uintptr_t buf, size_t size)
 			cmd.cmd_idx = EMMC_CMD12;
 			ret = ops->send_cmd(&cmd);
 			assert(ret == 0);
+			INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 		}
 	}
 	/* Ignore improbable errors in release builds */
 	(void)ret;
+
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	return size;
 }
 

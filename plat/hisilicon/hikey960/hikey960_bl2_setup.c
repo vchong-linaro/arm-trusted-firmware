@@ -14,8 +14,10 @@
 #include <generic_delay_timer.h>
 #include <hi3660.h>
 #include <mmio.h>
+#if LOAD_IMAGE_V2
 #ifdef SPD_opteed
 #include <optee_utils.h>
+#endif
 #endif
 #include <platform_def.h>
 #include <string.h>

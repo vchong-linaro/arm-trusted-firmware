@@ -271,6 +271,7 @@ int io_size(uintptr_t handle, size_t *length)
 	return result;
 }
 
+#include <debug.h>
 
 /* Read data from an IO entity */
 int io_read(uintptr_t handle,
@@ -280,6 +281,8 @@ int io_read(uintptr_t handle,
 {
 	int result = -ENODEV;
 	assert(is_valid_entity(handle) && (buffer != (uintptr_t)NULL));
+
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 
 	io_entity_t *entity = (io_entity_t *)handle;
 

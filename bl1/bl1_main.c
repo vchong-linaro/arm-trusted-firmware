@@ -55,17 +55,38 @@ void bl1_init_bl2_mem_layout(const meminfo_t *bl1_mem_layout,
 	bl2_mem_layout->total_base = bl1_mem_layout->total_base;
 	bl2_mem_layout->total_size = BL1_RW_BASE - bl1_mem_layout->total_base;
 #else
+	INFO("LOAD_IMAGE_V1 %s:%d\n", __FILE__, __LINE__);
+
 	/* Check that BL1's memory is lying outside of the free memory */
 	assert((BL1_RAM_LIMIT <= bl1_mem_layout->free_base) ||
 	       (BL1_RAM_BASE >= bl1_mem_layout->free_base +
 				bl1_mem_layout->free_size));
 
 	/* Remove BL1 RW data from the scope of memory visible to BL2 */
+	INFO("bl1_mem_layout->total_base %p bl1_mem_layout->total_size 0x%lx\n", (void *)bl1_mem_layout->total_base, bl1_mem_layout->total_size);
+	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
 	*bl2_mem_layout = *bl1_mem_layout;
+	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
 	reserve_mem(&bl2_mem_layout->total_base,
 		    &bl2_mem_layout->total_size,
 		    BL1_RAM_BASE,
 		    BL1_RAM_LIMIT - BL1_RAM_BASE);
+	INFO("BL1_RAM_BASE %lx BL1_RAM_LIMIT %lx size 0x%lx\n", BL1_RAM_BASE, BL1_RAM_LIMIT, BL1_RAM_LIMIT - BL1_RAM_BASE);
+	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
+	INFO("bl1_mem_layout->total_base %p bl1_mem_layout->total_size 0x%lx\n", (void *)bl1_mem_layout->total_base, bl1_mem_layout->total_size);
+
+#if 0
+	INFO:    LOAD_IMAGE_V1 bl1/bl1_main.c:45
+	INFO:    bl1_mem_layout->total_base 0xf9810000 bl1_mem_layout->total_size 0x88000
+	INFO:    bl2_mem_layout->total_base 0xa0022420f73fedbf bl2_mem_layout->total_size 0xdfbfbddc8003004
+	INFO:    bl2_mem_layout->total_base 0xf9810000 bl2_mem_layout->total_size 0x88000
+	VERBOSE: Reserved 0x5000 bytes (discarded 0x0 bytes below)
+	INFO:    BL1_RAM_BASE f9810000 BL1_RAM_LIMIT f9815000 size 0x5000
+	INFO:    bl2_mem_layout->total_base 0xf9815000 bl2_mem_layout->total_size 0x83000
+	-> SO reserve_mem ACTUALLY REMOVED BL1_RAM_LIMIT - BL1_RAM_BASE (0x5000) FR bl2_mem_layout!!!!!!
+	INFO:    bl1_mem_layout->total_base 0xf9810000 bl1_mem_layout->total_size 0x88000
+#endif
+
 #endif /* LOAD_IMAGE_V2 */
 
 	flush_dcache_range((unsigned long)bl2_mem_layout, sizeof(meminfo_t));

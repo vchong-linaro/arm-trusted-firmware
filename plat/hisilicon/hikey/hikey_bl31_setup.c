@@ -144,6 +144,9 @@ void bl31_early_platform_setup(bl31_params_t *from_bl2,
 
 void bl31_plat_arch_setup(void)
 {
+	INFO("BL31_BASE 0x%x BL31_LIMIT 0x%x size 0x%x\n", BL31_BASE, BL31_LIMIT, BL31_LIMIT - BL31_BASE);
+	INFO("BL31_RO_BASE 0x%lx BL31_RO_LIMIT 0x%lx BL31_COHERENT_RAM_BASE 0x%lx BL31_COHERENT_RAM_LIMIT 0x%lx\n", BL31_RO_BASE, BL31_RO_LIMIT, BL31_COHERENT_RAM_BASE, BL31_COHERENT_RAM_LIMIT);
+
 	hikey_init_mmu_el3(BL31_BASE,
 			   BL31_LIMIT - BL31_BASE,
 			   BL31_RO_BASE,

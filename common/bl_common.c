@@ -197,6 +197,26 @@ size_t image_size(unsigned int image_id)
 	return image_size;
 }
 
+void print_head_n_tail(uintptr_t image_base, unsigned int image_id, size_t image_size)
+{
+	int i;
+	int *buf;
+
+	buf = (int *)image_base;
+
+	INFO("BL2: Show image id %u HEAD:\n", image_id);
+	for (i = 0; i < 64; i += 4)
+		INFO("BL2: 0x%x 0x%x 0x%x 0x%x\n",
+			buf[i], buf[i+1], buf[i+2], buf[i+3]);
+
+	buf = (int *)(image_base + image_size - 256);
+
+	INFO("BL2: Show image id %u TAIL:\n", image_id);
+	for (i = 0; i < 64; i += 4)
+		INFO("BL2: 0x%x 0x%x 0x%x 0x%x\n",
+			buf[i], buf[i+1], buf[i+2], buf[i+3]);
+}
+
 #if LOAD_IMAGE_V2
 
 /*******************************************************************************
@@ -243,6 +263,7 @@ int load_image(unsigned int image_id, image_info_t *image_data)
 
 	/* Find the size of the image */
 	io_result = io_size(image_handle, &image_size);
+	INFO("BL2: image id %u size = %zu\n", image_id, image_size);
 	if ((io_result != 0) || (image_size == 0)) {
 		WARN("Failed to determine the size of the image id=%u (%i)\n",
 			image_id, io_result);
@@ -256,15 +277,21 @@ int load_image(unsigned int image_id, image_info_t *image_data)
 		goto exit;
 	}
 
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	image_data->image_size = image_size;
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 
 	/* We have enough space so load the image now */
 	/* TODO: Consider whether to try to recover/retry a partially successful read */
 	io_result = io_read(image_handle, image_base, image_size, &bytes_read);
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	if ((io_result != 0) || (bytes_read < image_size)) {
 		WARN("Failed to load image id=%u (%i)\n", image_id, io_result);
 		goto exit;
 	}
+
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
+	print_head_n_tail(image_base, image_id, image_size);
 
 #if !TRUSTED_BOARD_BOOT
 	/*
@@ -277,16 +304,20 @@ int load_image(unsigned int image_id, image_info_t *image_data)
 	flush_dcache_range(image_base, image_size);
 #endif /* TRUSTED_BOARD_BOOT */
 
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	INFO("Image id=%u loaded: %p - %p\n", image_id, (void *) image_base,
 	     (void *) (image_base + image_size));
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 
 exit:
 	io_close(image_handle);
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 	/* Ignore improbable/unrecoverable error in 'close' */
 
 	/* TODO: Consider maintaining open device connection from this bootloader stage */
 	io_dev_close(dev_handle);
 	/* Ignore improbable/unrecoverable error in 'dev_close' */
+	INFO("deadbeef %s:%d\n", __FILE__, __LINE__);
 
 	return io_result;
 }
@@ -414,6 +445,7 @@ int load_image(meminfo_t *mem_layout,
 
 	/* Find the size of the image */
 	io_result = io_size(image_handle, &image_size);
+	INFO("BL2: image id %u size = %zu\n", image_id, image_size);
 	if ((io_result != 0) || (image_size == 0)) {
 		WARN("Failed to determine the size of the image id=%u (%i)\n",
 			image_id, io_result);
@@ -437,6 +469,8 @@ int load_image(meminfo_t *mem_layout,
 		WARN("Failed to load image id=%u (%i)\n", image_id, io_result);
 		goto exit;
 	}
+
+	print_head_n_tail(image_base, image_id, image_size);
 
 	image_data->image_base = image_base;
 	image_data->image_size = image_size;

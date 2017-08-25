@@ -88,10 +88,11 @@ void bl1_init_bl2_mem_layout(const meminfo_t *bl1_mem_layout,
 	assert(bl2_mem_layout != NULL);
 
 	/*
-	 * Remove BL1 RW data from the scope of memory visible to BL2.
+	 * Cannot remove BL1 RW data from the scope of memory visible to BL2
+	 * like arm platforms because they overlap in hikey960
 	 */
 	bl2_mem_layout->total_base = BL2_BASE;
-	bl2_mem_layout->total_size = BL2_LIMIT - BL2_BASE;
+	bl2_mem_layout->total_size = NS_BL1U_LIMIT - BL2_BASE /* BL2_LIMIT - BL2_BASE //NO! NEED TO COVER/MAP BL3* STUFFS TOO */;
 
 	flush_dcache_range((unsigned long)bl2_mem_layout, sizeof(meminfo_t));
 }
@@ -128,7 +129,7 @@ void bl1_early_platform_setup(void)
 #endif /* LOAD_IMAGE_V2 */
 
 	INFO("BL1: 0x%lx - 0x%lx [size = %lu]\n", BL1_RAM_BASE, BL1_RAM_LIMIT,
-	     BL1_RAM_LIMIT - BL1_RAM_BASE /* bl1_size */);
+	     BL1_RAM_LIMIT - BL1_RAM_BASE); /* bl1_size */
 }
 
 /*
