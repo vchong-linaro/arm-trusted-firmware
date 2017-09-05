@@ -67,10 +67,46 @@ void bl1_init_bl2_mem_layout(const meminfo_t *bl1_mem_layout,
 	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
 	*bl2_mem_layout = *bl1_mem_layout;
 	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
+
+#if 0
+INFO:    Image id=1 loaded at address 0xf9818000, size = 0xa100
+INFO:    LOAD_IMAGE_V1 bl1/bl1_main.c:58
+INFO:    bl1_mem_layout->total_base 0xf9810000 bl1_mem_layout->total_size 0x88000
+INFO:    bl2_mem_layout->total_base 0xa0022420f73fedbf bl2_mem_layout->total_size 0xdfbfbddc8003004
+INFO:    bl2_mem_layout->total_base 0xf9810000 bl2_mem_layout->total_size 0x88000
+VERBOSE: Reserved 0x5000 bytes (discarded 0x0 bytes below)
+INFO:    BL1_RAM_BASE f9810000 BL1_RAM_LIMIT f9815000 size 0x5000
+INFO:    bl2_mem_layout->total_base 0xf9815000 bl2_mem_layout->total_size 0x83000
+INFO:    bl1_mem_layout->total_base 0xf9810000 bl1_mem_layout->total_size 0x88000
+NOTICE:  BL1: Booting BL2
+VERBOSE: BL1: BL2 memory layout address = 0xf9822100
+INFO:    Entry point address = 0xf9818000
+INFO:    SPSR = 0x3c5
+VERBOSE: Argument #0 = 0x0
+VERBOSE: Argument #1 = 0xf9822100
+VERBOSE: Argument #2 = 0x0
+VERBOSE: Argument #3 = 0x0
+VERBOSE: Argument #4 = 0x0
+VERBOSE: Argument #5 = 0x0
+VERBOSE: Argument #6 = 0x0
+VERBOSE: Argument #7 = 0x0
+#endif
+
+	/*
+	 * below func means
+	 * bl2_mem_layout->total_base = bl2_mem_layout->total_base (which was set to bl1_mem_layout->total_base previously, ie
+	 * 0xf981_0000) + (BL1_RAM_LIMIT - BL1_RAM_BASE = 0x5000)
+	 * = 0xf981_5000
+	 *
+	 * bl2_mem_layout->total_size = bl2_mem_layout->total_size (which was set to bl1_mem_layout->total_size previously, ie
+	 * 0x8_8000) - (BL1_RAM_LIMIT - BL1_RAM_BASE = 0x5000)
+	 * = 0x8_3000
+	 */
 	reserve_mem(&bl2_mem_layout->total_base,
 		    &bl2_mem_layout->total_size,
 		    BL1_RAM_BASE,
 		    BL1_RAM_LIMIT - BL1_RAM_BASE);
+
 	INFO("BL1_RAM_BASE %lx BL1_RAM_LIMIT %lx size 0x%lx\n", BL1_RAM_BASE, BL1_RAM_LIMIT, BL1_RAM_LIMIT - BL1_RAM_BASE);
 	INFO("bl2_mem_layout->total_base %p bl2_mem_layout->total_size 0x%lx\n", (void *)bl2_mem_layout->total_base, bl2_mem_layout->total_size);
 	INFO("bl1_mem_layout->total_base %p bl1_mem_layout->total_size 0x%lx\n", (void *)bl1_mem_layout->total_base, bl1_mem_layout->total_size);
