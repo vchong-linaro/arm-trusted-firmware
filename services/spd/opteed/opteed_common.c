@@ -24,17 +24,23 @@ void opteed_init_optee_ep_state(struct entry_point_info *optee_entry_point,
 {
 	uint32_t ep_attr;
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
+
 	/* Passing a NULL context is a critical programming error */
 	assert(optee_ctx);
 	assert(optee_entry_point);
 	assert(pc);
+
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 
 	/* Associate this context with the cpu specified */
 	optee_ctx->mpidr = read_mpidr_el1();
 	optee_ctx->state = 0;
 	set_optee_pstate(optee_ctx->state, OPTEE_PSTATE_OFF);
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	cm_set_context(&optee_ctx->cpu_ctx, SECURE);
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 
 	/* initialise an entrypoint to set up the CPU context */
 	ep_attr = SECURE | EP_ST_ENABLE;
@@ -69,19 +75,27 @@ uint64_t opteed_synchronous_sp_entry(optee_context_t *optee_ctx)
 {
 	uint64_t rc;
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
+
 	assert(optee_ctx != NULL);
 	assert(optee_ctx->c_rt_ctx == 0);
+
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 
 	/* Apply the Secure EL1 system register context and switch to it */
 	assert(cm_get_context(SECURE) == &optee_ctx->cpu_ctx);
 	cm_el1_sysregs_context_restore(SECURE);
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	cm_set_next_eret_context(SECURE);
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 
 	rc = opteed_enter_sp(&optee_ctx->c_rt_ctx);
 #if ENABLE_ASSERTIONS
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	optee_ctx->c_rt_ctx = 0;
 #endif
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	return rc;
 }
 

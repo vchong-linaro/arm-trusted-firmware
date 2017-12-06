@@ -98,7 +98,9 @@ int32_t opteed_setup(void)
 	uint64_t opteed_mem_limit;
 	uint64_t dt_addr;
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	linear_id = plat_my_core_pos();
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 
 	/*
 	 * Get information about the Secure Payload (BL32) image. Its
@@ -106,6 +108,7 @@ int32_t opteed_setup(void)
 	 * conditionally include the SPD service
 	 */
 	optee_ep_info = bl31_plat_get_next_image_ep_info(SECURE);
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	if (!optee_ep_info) {
 		WARN("No OPTEE provided by BL2 boot loader, Booting device"
 			" without OPTEE initialization. SMC`s destined for OPTEE"
@@ -118,14 +121,17 @@ int32_t opteed_setup(void)
 	 * signalling failure initializing the service. We bail out without
 	 * registering any handlers
 	 */
-	if (!optee_ep_info->pc)
+	if (!optee_ep_info->pc) {
+		ERROR("%s:%d\n", __FILE__, __LINE__);
 		return 1;
+	}
 
 	opteed_rw = optee_ep_info->args.arg0;
 	opteed_pageable_part = optee_ep_info->args.arg1;
 	opteed_mem_limit = optee_ep_info->args.arg2;
 	dt_addr = optee_ep_info->args.arg3;
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	opteed_init_optee_ep_state(optee_ep_info,
 				opteed_rw,
 				optee_ep_info->pc,
@@ -134,6 +140,7 @@ int32_t opteed_setup(void)
 				dt_addr,
 				&opteed_sp_context[linear_id]);
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	/*
 	 * All OPTEED initialization done. Now register our init function with
 	 * BL31 for deferred invocation
@@ -163,18 +170,22 @@ static int32_t opteed_init(void)
 	 * Get information about the OPTEE (BL32) image. Its
 	 * absence is a critical failure.
 	 */
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	optee_entry_point = bl31_plat_get_next_image_ep_info(SECURE);
 	assert(optee_entry_point);
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	cm_init_my_context(optee_entry_point);
 
 	/*
 	 * Arrange for an entry into OPTEE. It will be returned via
 	 * OPTEE_ENTRY_DONE case
 	 */
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	rc = opteed_synchronous_sp_entry(optee_ctx);
 	assert(rc != 0);
 
+	ERROR("%s:%d\n", __FILE__, __LINE__);
 	return rc;
 }
 
