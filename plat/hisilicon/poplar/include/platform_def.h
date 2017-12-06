@@ -53,18 +53,16 @@
 #define POPLAR_DRAM_ID	1
 
 /*
- * DDR for OP-TEE (28MB from 0x00400000 -0x01000000) is divided in several
+ * DDR for OP-TEE (28MB from 0x02200000 -0x04000000) is divided in several
  * regions:
  *   - Secure DDR (default is the top 16MB) used by OP-TEE
- *   - Secure DDR (4MB aligned on 4MB) for OP-TEE's "Secure Data Path" feature
  *   - Non-secure DDR (4MB) reserved for OP-TEE's future use
+ *   - Secure DDR (4MB aligned on 4MB) for OP-TEE's "Secure Data Path" feature
  *   - Non-secure DDR used by OP-TEE (shared memory and padding) (4MB)
+ *   - Non-secure DDR (2MB) reserved for OP-TEE's future use
  */
 #define DDR_SEC_SIZE			0x01000000
-#define DDR_SEC_BASE			0x01000000
-
-#define DDR_SDP_SIZE			0x00400000
-#define DDR_SDP_BASE			0x00800000
+#define DDR_SEC_BASE			0x03000000
 
 #define BL_MEM_BASE			(BL1_RO_BASE)
 #define BL_MEM_LIMIT			(BL31_LIMIT)
@@ -77,8 +75,8 @@
 /*
  * The TSP currently executes from TZC secured area of DRAM.
  */
-#define BL32_DRAM_BASE			0x01000000
-#define BL32_DRAM_LIMIT			0x02000000
+#define BL32_DRAM_BASE			0x03000000
+#define BL32_DRAM_LIMIT			0x04000000
 
 #if (POPLAR_TSP_RAM_LOCATION_ID == POPLAR_DRAM_ID)
 #define TSP_SEC_MEM_BASE		BL32_DRAM_BASE
