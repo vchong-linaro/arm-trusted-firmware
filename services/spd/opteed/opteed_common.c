@@ -48,7 +48,7 @@ void opteed_init_optee_ep_state(struct entry_point_info *optee_entry_point,
 		ep_attr |= EP_EE_BIG;
 	SET_PARAM_HEAD(optee_entry_point, PARAM_EP, VERSION_1, ep_attr);
 	optee_entry_point->pc = pc;
-	if (rw == OPTEE_AARCH64)
+	if (0) //(rw == OPTEE_AARCH64)
 		optee_entry_point->spsr = SPSR_64(MODE_EL1, MODE_SP_ELX,
 						  DISABLE_ALL_EXCEPTIONS);
 	else
