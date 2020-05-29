@@ -409,6 +409,28 @@ ifeq ($(MEASURED_BOOT),1)
 DTC_CPPFLAGS		+=	-DMEASURED_BOOT -DBL2_HASH_SIZE=${TCG_DIGEST_SIZE}
 endif
 
+$(info $$CC is [${CC}])
+$(info $$LD is [${LD}])
+$(info $$AS is [${AS}])
+$(info $$AR is [${AR}])
+$(info $$PP is [${PP}])
+$(info $$CPP is [${CPP}])
+$(info $$OC is [${OC}])
+$(info $$OD is [${OD}])
+$(info $$NM is [${NM}])
+$(info $$CFLAGS is [${CFLAGS}])
+$(info $$ASFLAGS is [${ASFLAGS}])
+$(info $$ASFLAGS_aarch32 is [${ASFLAGS_aarch32}])
+$(info $$ASCFLAGS_aarch64 is [${ASFLAGS_aarch64}])
+$(info $$LDFLAGS is [${LDFLAGS}])
+$(info $$LINKER is [${LINKER}])
+$(info $$TF_CFLAGS is [${TF_CFLAGS}])
+$(info $$TF_CFLAGS_aarch32 is [${TF_CFLAGS_aarch32}])
+$(info $$TF_CFLAGS_aarch64 is [${TF_CFLAGS_aarch64}])
+$(info $$CPPFLAGS is [${CPPFLAGS}])
+$(info $$TF_LDFLAGS is [${TF_LDFLAGS}])
+$(info $$WARNINGS is [${WARNINGS}])
+
 ################################################################################
 # Common sources and include directories
 ################################################################################
