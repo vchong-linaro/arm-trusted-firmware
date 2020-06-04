@@ -424,6 +424,7 @@ $(info $$ASFLAGS_aarch32 is [${ASFLAGS_aarch32}])
 $(info $$ASCFLAGS_aarch64 is [${ASFLAGS_aarch64}])
 $(info $$LDFLAGS is [${LDFLAGS}])
 $(info $$LINKER is [${LINKER}])
+# TF_CFLAGS = CPPFLAGS + TF_CFLAGS_${ARCH}?
 $(info $$TF_CFLAGS is [${TF_CFLAGS}])
 $(info $$TF_CFLAGS_aarch32 is [${TF_CFLAGS_aarch32}])
 $(info $$TF_CFLAGS_aarch64 is [${TF_CFLAGS_aarch64}])
